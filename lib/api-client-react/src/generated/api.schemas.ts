@@ -21,6 +21,8 @@ export interface AnthropicConversation {
   completed: boolean;
   /** @nullable */
   summary?: string | null;
+  /** @nullable */
+  personaId?: number | null;
   createdAt: string;
 }
 
@@ -40,6 +42,8 @@ export interface AnthropicConversationWithMessages {
   completed: boolean;
   /** @nullable */
   summary?: string | null;
+  /** @nullable */
+  personaId?: number | null;
   createdAt: string;
   messages: AnthropicMessage[];
 }
@@ -47,6 +51,8 @@ export interface AnthropicConversationWithMessages {
 export interface ConversationInput {
   title: string;
   sessionToken: string;
+  /** @nullable */
+  personaId?: number | null;
 }
 
 export interface MessageInput {
@@ -66,6 +72,12 @@ export interface LeadSummary {
   /** @nullable */
   summary?: string | null;
   messageCount: number;
+  /** @nullable */
+  personaId?: number | null;
+  /** @nullable */
+  personaName?: string | null;
+  /** @nullable */
+  personaTypeName?: string | null;
   createdAt: string;
 }
 
@@ -77,6 +89,12 @@ export interface LeadDetail {
   /** @nullable */
   summary?: string | null;
   messageCount: number;
+  /** @nullable */
+  personaId?: number | null;
+  /** @nullable */
+  personaName?: string | null;
+  /** @nullable */
+  personaTypeName?: string | null;
   createdAt: string;
   messages: AnthropicMessage[];
 }
@@ -101,22 +119,70 @@ export interface AppSettingsUpdate {
   consultantPhotoUrl?: string | null;
 }
 
+export interface PersonaType {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  systemPrompt: string;
+  defaultStyle: string;
+  color: string;
+  createdAt: string;
+}
+
 export interface Persona {
   id: number;
+  /** @nullable */
+  personaTypeId?: number | null;
+  /** @nullable */
+  personaTypeName?: string | null;
   name: string;
   title: string;
   /** @nullable */
   photoUrl?: string | null;
-  systemPrompt: string;
+  additionalPrompt: string;
+  /** @nullable */
+  style?: string | null;
+  effectiveStyle: string;
   isActive: boolean;
   createdAt: string;
 }
 
+export interface PersonaTypeWithPersonas {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  systemPrompt: string;
+  defaultStyle: string;
+  color: string;
+  createdAt: string;
+  personas: Persona[];
+}
+
+export interface PersonaTypeInput {
+  name: string;
+  slug: string;
+  description?: string;
+  systemPrompt: string;
+  defaultStyle: string;
+  color: string;
+}
+
 export interface PersonaInput {
+  /** @nullable */
+  personaTypeId?: number | null;
   name: string;
   title: string;
   /** @nullable */
   photoUrl?: string | null;
-  systemPrompt: string;
+  additionalPrompt: string;
+  /** @nullable */
+  style?: string | null;
 }
+
+export type ListAdminLeadsParams = {
+personaId?: number;
+personaTypeId?: number;
+};
 

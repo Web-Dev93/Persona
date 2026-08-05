@@ -8,11 +8,18 @@
 
 export interface Persona {
   id: number;
+  /** @nullable */
+  personaTypeId?: number | null;
+  /** @nullable */
+  personaTypeName?: string | null;
   name: string;
   title: string;
   /** @nullable */
   photoUrl?: string | null;
-  systemPrompt: string;
+  additionalPrompt: string;
+  /** @nullable */
+  style?: string | null;
+  effectiveStyle: string;
   isActive: boolean;
   createdAt: Date;
 }

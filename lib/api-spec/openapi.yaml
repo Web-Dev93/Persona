@@ -9,13 +9,9 @@ servers:
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: anthropic
-    description: Anthropic AI chat operations
   - name: leads
-    description: Lead management operations
   - name: admin
-    description: Admin CRM operations
 paths:
   /healthz:
     get:
@@ -152,7 +148,7 @@ paths:
     get:
       operationId: getSessionByToken
       tags: [leads]
-      summary: Get conversation by session token (for resuming chat)
+      summary: Get conversation by session token
       parameters:
         - name: token
           in: path
@@ -161,13 +157,13 @@ paths:
             type: string
       responses:
         "200":
-          description: Conversation with messages for this session
+          description: Conversation with messages
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AnthropicConversationWithMessages"
         "404":
-          description: Session not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -177,7 +173,7 @@ paths:
     post:
       operationId: completeLead
       tags: [leads]
-      summary: Mark lead conversation as complete
+      summary: Mark lead as complete
       parameters:
         - name: id
           in: path
@@ -202,10 +198,21 @@ paths:
     get:
       operationId: listAdminLeads
       tags: [admin]
-      summary: List all leads for CRM view
+      summary: List all leads
+      parameters:
+        - name: personaId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: personaTypeId
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
-          description: List of leads with metadata
+          description: List of leads
           content:
             application/json:
               schema:
@@ -217,7 +224,7 @@ paths:
     get:
       operationId: getAdminLead
       tags: [admin]
-      summary: Get lead detail with transcript and summary
+      summary: Get lead detail
       parameters:
         - name: id
           in: path
@@ -226,7 +233,7 @@ paths:
             type: integer
       responses:
         "200":
-          description: Lead with full transcript
+          description: Lead detail
           content:
             application/json:
               schema:
@@ -261,7 +268,7 @@ paths:
     post:
       operationId: summarizeLead
       tags: [admin]
-      summary: Generate an AI summary of the lead conversation
+      summary: Generate AI summary of lead
       parameters:
         - name: id
           in: path
@@ -286,7 +293,7 @@ paths:
     get:
       operationId: getAdminSettings
       tags: [admin]
-      summary: Get admin settings (system prompt, consultant info)
+      summary: Get admin settings
       responses:
         "200":
           description: Current settings
@@ -312,6 +319,111 @@ paths:
               schema:
                 $ref: "#/components/schemas/AppSettings"
 
+  /admin/persona-types:
+    get:
+      operationId: listPersonaTypes
+      tags: [admin]
+      summary: List all persona types with their personas
+      responses:
+        "200":
+          description: List of persona types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PersonaTypeWithPersonas"
+    post:
+      operationId: createPersonaType
+      tags: [admin]
+      summary: Create a persona type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonaTypeInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonaType"
+
+  /admin/persona-types/{id}:
+    get:
+      operationId: getPersonaType
+      tags: [admin]
+      summary: Get a persona type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Persona type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonaType"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: updatePersonaType
+      tags: [admin]
+      summary: Update a persona type
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonaTypeInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonaType"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deletePersonaType
+      tags: [admin]
+      summary: Delete a persona type and all its personas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /admin/personas:
     get:
       operationId: listPersonas
@@ -329,7 +441,7 @@ paths:
     post:
       operationId: createPersona
       tags: [admin]
-      summary: Create a new persona
+      summary: Create a persona within a type
       requestBody:
         required: true
         content:
@@ -338,7 +450,7 @@ paths:
               $ref: "#/components/schemas/PersonaInput"
       responses:
         "201":
-          description: Created persona
+          description: Created
           content:
             application/json:
               schema:
@@ -348,7 +460,7 @@ paths:
     get:
       operationId: getActivePersona
       tags: [admin]
-      summary: Get the currently active persona
+      summary: Get the currently active persona (with effective style)
       responses:
         "200":
           description: Active persona
@@ -367,7 +479,7 @@ paths:
     get:
       operationId: getPersona
       tags: [admin]
-      summary: Get a persona by ID
+      summary: Get a persona
       parameters:
         - name: id
           in: path
@@ -405,7 +517,7 @@ paths:
               $ref: "#/components/schemas/PersonaInput"
       responses:
         "200":
-          description: Updated persona
+          description: Updated
           content:
             application/json:
               schema:
@@ -440,7 +552,7 @@ paths:
     post:
       operationId: activatePersona
       tags: [admin]
-      summary: Set a persona as the active one
+      summary: Set a persona as active
       parameters:
         - name: id
           in: path
@@ -468,16 +580,14 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     ApiError:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
 
     AnthropicConversation:
       type: object
@@ -494,16 +604,12 @@ components:
           type: boolean
         summary:
           type: ["string", "null"]
+        personaId:
+          type: ["integer", "null"]
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - title
-        - sessionToken
-        - emailSent
-        - completed
-        - createdAt
+      required: [id, title, sessionToken, emailSent, completed, createdAt]
 
     AnthropicMessage:
       type: object
@@ -519,12 +625,7 @@ components:
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - conversationId
-        - role
-        - content
-        - createdAt
+      required: [id, conversationId, role, content, createdAt]
 
     AnthropicConversationWithMessages:
       type: object
@@ -541,6 +642,8 @@ components:
           type: boolean
         summary:
           type: ["string", "null"]
+        personaId:
+          type: ["integer", "null"]
         createdAt:
           type: string
           format: date-time
@@ -548,14 +651,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AnthropicMessage"
-      required:
-        - id
-        - title
-        - sessionToken
-        - emailSent
-        - completed
-        - createdAt
-        - messages
+      required: [id, title, sessionToken, emailSent, completed, createdAt, messages]
 
     ConversationInput:
       type: object
@@ -564,17 +660,16 @@ components:
           type: string
         sessionToken:
           type: string
-      required:
-        - title
-        - sessionToken
+        personaId:
+          type: ["integer", "null"]
+      required: [title, sessionToken]
 
     MessageInput:
       type: object
       properties:
         content:
           type: string
-      required:
-        - content
+      required: [content]
 
     LeadCompleteResult:
       type: object
@@ -583,9 +678,7 @@ components:
           type: boolean
         message:
           type: string
-      required:
-        - success
-        - message
+      required: [success, message]
 
     LeadSummary:
       type: object
@@ -602,16 +695,16 @@ components:
           type: ["string", "null"]
         messageCount:
           type: integer
+        personaId:
+          type: ["integer", "null"]
+        personaName:
+          type: ["string", "null"]
+        personaTypeName:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - title
-        - sessionToken
-        - completed
-        - messageCount
-        - createdAt
+      required: [id, title, sessionToken, completed, messageCount, createdAt]
 
     LeadDetail:
       type: object
@@ -628,6 +721,12 @@ components:
           type: ["string", "null"]
         messageCount:
           type: integer
+        personaId:
+          type: ["integer", "null"]
+        personaName:
+          type: ["string", "null"]
+        personaTypeName:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -635,22 +734,14 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AnthropicMessage"
-      required:
-        - id
-        - title
-        - sessionToken
-        - completed
-        - messageCount
-        - createdAt
-        - messages
+      required: [id, title, sessionToken, completed, messageCount, createdAt, messages]
 
     LeadSummarizeResult:
       type: object
       properties:
         summary:
           type: string
-      required:
-        - summary
+      required: [summary]
 
     AppSettings:
       type: object
@@ -663,10 +754,7 @@ components:
           type: string
         consultantPhotoUrl:
           type: ["string", "null"]
-      required:
-        - systemPrompt
-        - consultantName
-        - consultantTitle
+      required: [systemPrompt, consultantName, consultantTitle]
 
     AppSettingsUpdate:
       type: object
@@ -680,44 +768,112 @@ components:
         consultantPhotoUrl:
           type: ["string", "null"]
 
-    Persona:
+    PersonaType:
       type: object
       properties:
         id:
           type: integer
         name:
           type: string
-        title:
+        slug:
           type: string
-        photoUrl:
-          type: ["string", "null"]
+        description:
+          type: string
         systemPrompt:
           type: string
-        isActive:
-          type: boolean
+        defaultStyle:
+          type: string
+        color:
+          type: string
         createdAt:
           type: string
           format: date-time
-      required:
-        - id
-        - name
-        - title
-        - systemPrompt
-        - isActive
-        - createdAt
+      required: [id, name, slug, description, systemPrompt, defaultStyle, color, createdAt]
 
-    PersonaInput:
+    PersonaTypeWithPersonas:
       type: object
       properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        systemPrompt:
+          type: string
+        defaultStyle:
+          type: string
+        color:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        personas:
+          type: array
+          items:
+            $ref: "#/components/schemas/Persona"
+      required: [id, name, slug, description, systemPrompt, defaultStyle, color, createdAt, personas]
+
+    PersonaTypeInput:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        systemPrompt:
+          type: string
+        defaultStyle:
+          type: string
+        color:
+          type: string
+      required: [name, slug, systemPrompt, defaultStyle, color]
+
+    Persona:
+      type: object
+      properties:
+        id:
+          type: integer
+        personaTypeId:
+          type: ["integer", "null"]
+        personaTypeName:
+          type: ["string", "null"]
         name:
           type: string
         title:
           type: string
         photoUrl:
           type: ["string", "null"]
-        systemPrompt:
+        additionalPrompt:
           type: string
-      required:
-        - name
-        - title
-        - systemPrompt
+        style:
+          type: ["string", "null"]
+        effectiveStyle:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, title, additionalPrompt, effectiveStyle, isActive, createdAt]
+
+    PersonaInput:
+      type: object
+      properties:
+        personaTypeId:
+          type: ["integer", "null"]
+        name:
+          type: string
+        title:
+          type: string
+        photoUrl:
+          type: ["string", "null"]
+        additionalPrompt:
+          type: string
+        style:
+          type: ["string", "null"]
+      required: [name, title, additionalPrompt]

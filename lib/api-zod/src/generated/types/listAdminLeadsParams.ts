@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ConversationInput {
-  title: string;
-  sessionToken: string;
-  /** @nullable */
-  personaId?: number | null;
-}
+export type ListAdminLeadsParams = {
+personaId?: number;
+personaTypeId?: number;
+};

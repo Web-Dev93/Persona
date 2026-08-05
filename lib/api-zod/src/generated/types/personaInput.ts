@@ -7,9 +7,13 @@
  */
 
 export interface PersonaInput {
+  /** @nullable */
+  personaTypeId?: number | null;
   name: string;
   title: string;
   /** @nullable */
   photoUrl?: string | null;
-  systemPrompt: string;
+  additionalPrompt: string;
+  /** @nullable */
+  style?: string | null;
 }

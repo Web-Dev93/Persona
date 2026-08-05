@@ -26,6 +26,7 @@ export const ListAnthropicConversationsResponseItem = zod.object({
   "emailSent": zod.boolean(),
   "completed": zod.boolean(),
   "summary": zod.string().nullish(),
+  "personaId": zod.int().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListAnthropicConversationsResponse = zod.array(ListAnthropicConversationsResponseItem)
@@ -36,7 +37,8 @@ export const ListAnthropicConversationsResponse = zod.array(ListAnthropicConvers
  */
 export const CreateAnthropicConversationBody = zod.object({
   "title": zod.string(),
-  "sessionToken": zod.string()
+  "sessionToken": zod.string(),
+  "personaId": zod.int().nullish()
 })
 
 export const CreateAnthropicConversationResponse = zod.object({
@@ -46,6 +48,7 @@ export const CreateAnthropicConversationResponse = zod.object({
   "emailSent": zod.boolean(),
   "completed": zod.boolean(),
   "summary": zod.string().nullish(),
+  "personaId": zod.int().nullish(),
   "createdAt": zod.coerce.date()
 })
 
@@ -64,6 +67,7 @@ export const GetAnthropicConversationResponse = zod.object({
   "emailSent": zod.boolean(),
   "completed": zod.boolean(),
   "summary": zod.string().nullish(),
+  "personaId": zod.int().nullish(),
   "createdAt": zod.coerce.date(),
   "messages": zod.array(zod.object({
   "id": zod.int(),
@@ -117,7 +121,7 @@ export const SendAnthropicMessageResponse = zod.unknown()
 
 
 /**
- * @summary Get conversation by session token (for resuming chat)
+ * @summary Get conversation by session token
  */
 export const GetSessionByTokenParams = zod.object({
   "token": zod.coerce.string()
@@ -130,6 +134,7 @@ export const GetSessionByTokenResponse = zod.object({
   "emailSent": zod.boolean(),
   "completed": zod.boolean(),
   "summary": zod.string().nullish(),
+  "personaId": zod.int().nullish(),
   "createdAt": zod.coerce.date(),
   "messages": zod.array(zod.object({
   "id": zod.int(),
@@ -142,7 +147,7 @@ export const GetSessionByTokenResponse = zod.object({
 
 
 /**
- * @summary Mark lead conversation as complete
+ * @summary Mark lead as complete
  */
 export const CompleteLeadParams = zod.object({
   "id": zod.coerce.number().int()
@@ -155,8 +160,13 @@ export const CompleteLeadResponse = zod.object({
 
 
 /**
- * @summary List all leads for CRM view
+ * @summary List all leads
  */
+export const ListAdminLeadsQueryParams = zod.object({
+  "personaId": zod.coerce.number().int().optional(),
+  "personaTypeId": zod.coerce.number().int().optional()
+})
+
 export const ListAdminLeadsResponseItem = zod.object({
   "id": zod.int(),
   "title": zod.string(),
@@ -164,13 +174,16 @@ export const ListAdminLeadsResponseItem = zod.object({
   "completed": zod.boolean(),
   "summary": zod.string().nullish(),
   "messageCount": zod.int(),
+  "personaId": zod.int().nullish(),
+  "personaName": zod.string().nullish(),
+  "personaTypeName": zod.string().nullish(),
   "createdAt": zod.coerce.date()
 })
 export const ListAdminLeadsResponse = zod.array(ListAdminLeadsResponseItem)
 
 
 /**
- * @summary Get lead detail with transcript and summary
+ * @summary Get lead detail
  */
 export const GetAdminLeadParams = zod.object({
   "id": zod.coerce.number().int()
@@ -183,6 +196,9 @@ export const GetAdminLeadResponse = zod.object({
   "completed": zod.boolean(),
   "summary": zod.string().nullish(),
   "messageCount": zod.int(),
+  "personaId": zod.int().nullish(),
+  "personaName": zod.string().nullish(),
+  "personaTypeName": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "messages": zod.array(zod.object({
   "id": zod.int(),
@@ -205,7 +221,7 @@ export const DeleteAdminLeadResponse = zod.void()
 
 
 /**
- * @summary Generate an AI summary of the lead conversation
+ * @summary Generate AI summary of lead
  */
 export const SummarizeLeadParams = zod.object({
   "id": zod.coerce.number().int()
@@ -217,7 +233,7 @@ export const SummarizeLeadResponse = zod.object({
 
 
 /**
- * @summary Get admin settings (system prompt, consultant info)
+ * @summary Get admin settings
  */
 export const GetAdminSettingsResponse = zod.object({
   "systemPrompt": zod.string(),
@@ -246,14 +262,128 @@ export const UpdateAdminSettingsResponse = zod.object({
 
 
 /**
+ * @summary List all persona types with their personas
+ */
+export const ListPersonaTypesResponseItem = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string(),
+  "systemPrompt": zod.string(),
+  "defaultStyle": zod.string(),
+  "color": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "personas": zod.array(zod.object({
+  "id": zod.int(),
+  "personaTypeId": zod.int().nullish(),
+  "personaTypeName": zod.string().nullish(),
+  "name": zod.string(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish(),
+  "effectiveStyle": zod.string(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}))
+})
+export const ListPersonaTypesResponse = zod.array(ListPersonaTypesResponseItem)
+
+
+/**
+ * @summary Create a persona type
+ */
+export const CreatePersonaTypeBody = zod.object({
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string().optional(),
+  "systemPrompt": zod.string(),
+  "defaultStyle": zod.string(),
+  "color": zod.string()
+})
+
+export const CreatePersonaTypeResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string(),
+  "systemPrompt": zod.string(),
+  "defaultStyle": zod.string(),
+  "color": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get a persona type
+ */
+export const GetPersonaTypeParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetPersonaTypeResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string(),
+  "systemPrompt": zod.string(),
+  "defaultStyle": zod.string(),
+  "color": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a persona type
+ */
+export const UpdatePersonaTypeParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdatePersonaTypeBody = zod.object({
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string().optional(),
+  "systemPrompt": zod.string(),
+  "defaultStyle": zod.string(),
+  "color": zod.string()
+})
+
+export const UpdatePersonaTypeResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "slug": zod.string(),
+  "description": zod.string(),
+  "systemPrompt": zod.string(),
+  "defaultStyle": zod.string(),
+  "color": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a persona type and all its personas
+ */
+export const DeletePersonaTypeParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeletePersonaTypeResponse = zod.void()
+
+
+/**
  * @summary List all personas
  */
 export const ListPersonasResponseItem = zod.object({
   "id": zod.int(),
+  "personaTypeId": zod.int().nullish(),
+  "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
-  "systemPrompt": zod.string(),
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish(),
+  "effectiveStyle": zod.string(),
   "isActive": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -261,42 +391,52 @@ export const ListPersonasResponse = zod.array(ListPersonasResponseItem)
 
 
 /**
- * @summary Create a new persona
+ * @summary Create a persona within a type
  */
 export const CreatePersonaBody = zod.object({
+  "personaTypeId": zod.int().nullish(),
   "name": zod.string(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
-  "systemPrompt": zod.string()
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish()
 })
 
 export const CreatePersonaResponse = zod.object({
   "id": zod.int(),
+  "personaTypeId": zod.int().nullish(),
+  "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
-  "systemPrompt": zod.string(),
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish(),
+  "effectiveStyle": zod.string(),
   "isActive": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
 
 
 /**
- * @summary Get the currently active persona
+ * @summary Get the currently active persona (with effective style)
  */
 export const GetActivePersonaResponse = zod.object({
   "id": zod.int(),
+  "personaTypeId": zod.int().nullish(),
+  "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
-  "systemPrompt": zod.string(),
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish(),
+  "effectiveStyle": zod.string(),
   "isActive": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
 
 
 /**
- * @summary Get a persona by ID
+ * @summary Get a persona
  */
 export const GetPersonaParams = zod.object({
   "id": zod.coerce.number().int()
@@ -304,10 +444,14 @@ export const GetPersonaParams = zod.object({
 
 export const GetPersonaResponse = zod.object({
   "id": zod.int(),
+  "personaTypeId": zod.int().nullish(),
+  "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
-  "systemPrompt": zod.string(),
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish(),
+  "effectiveStyle": zod.string(),
   "isActive": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -321,18 +465,24 @@ export const UpdatePersonaParams = zod.object({
 })
 
 export const UpdatePersonaBody = zod.object({
+  "personaTypeId": zod.int().nullish(),
   "name": zod.string(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
-  "systemPrompt": zod.string()
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish()
 })
 
 export const UpdatePersonaResponse = zod.object({
   "id": zod.int(),
+  "personaTypeId": zod.int().nullish(),
+  "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
-  "systemPrompt": zod.string(),
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish(),
+  "effectiveStyle": zod.string(),
   "isActive": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -349,7 +499,7 @@ export const DeletePersonaResponse = zod.void()
 
 
 /**
- * @summary Set a persona as the active one
+ * @summary Set a persona as active
  */
 export const ActivatePersonaParams = zod.object({
   "id": zod.coerce.number().int()
@@ -357,10 +507,14 @@ export const ActivatePersonaParams = zod.object({
 
 export const ActivatePersonaResponse = zod.object({
   "id": zod.int(),
+  "personaTypeId": zod.int().nullish(),
+  "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
-  "systemPrompt": zod.string(),
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish(),
+  "effectiveStyle": zod.string(),
   "isActive": zod.boolean(),
   "createdAt": zod.coerce.date()
 })

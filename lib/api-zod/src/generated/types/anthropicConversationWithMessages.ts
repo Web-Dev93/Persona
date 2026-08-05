@@ -15,6 +15,8 @@ export interface AnthropicConversationWithMessages {
   completed: boolean;
   /** @nullable */
   summary?: string | null;
+  /** @nullable */
+  personaId?: number | null;
   createdAt: Date;
   messages: AnthropicMessage[];
 }

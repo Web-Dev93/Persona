@@ -14,5 +14,7 @@ export interface AnthropicConversation {
   completed: boolean;
   /** @nullable */
   summary?: string | null;
+  /** @nullable */
+  personaId?: number | null;
   createdAt: Date;
 }

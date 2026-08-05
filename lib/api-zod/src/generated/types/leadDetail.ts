@@ -15,6 +15,12 @@ export interface LeadDetail {
   /** @nullable */
   summary?: string | null;
   messageCount: number;
+  /** @nullable */
+  personaId?: number | null;
+  /** @nullable */
+  personaName?: string | null;
+  /** @nullable */
+  personaTypeName?: string | null;
   createdAt: Date;
   messages: AnthropicMessage[];
 }
