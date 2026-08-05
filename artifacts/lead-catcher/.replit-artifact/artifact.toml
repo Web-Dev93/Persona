@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Lead Catcher"
+description = "A lead capture chatbot for a web agency. The landing page IS the chat — a minimalist, premium chat interface where clients describe their website needs to an AI consultant. Conversations are persisted via localStorage (session tokens) so users can return and continue. File uploads are supported. After gathering the key info, a summary is emailed to the agency owner."
+version = "1.0.0"
+id = "artifacts/lead-catcher"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18838
+
+[services.development]
+run = "pnpm --filter @workspace/lead-catcher run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/lead-catcher", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/lead-catcher/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18838"
+BASE_PATH = "/"

@@ -1,0 +1,1 @@
+- [Orval Zod v4 import fix](orval-zod-v4.md) — codegen generates `zod.int()` (v4 syntax) but imports from `'zod'` (v3). Fix: sed patch in codegen script.
