@@ -11,6 +11,7 @@ const queryClient = new QueryClient();
 function Router() {
   return (
     <Switch>
+      <Route path="/chat/:slug">{(params) => <ChatPage personaSlug={params.slug} />}</Route>
       <Route path="/" component={ChatPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />

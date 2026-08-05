@@ -1557,6 +1557,83 @@ export const useDeletePersonaType = <TError = ErrorType<ApiError>,
       return useMutation(getDeletePersonaTypeMutationOptions(options));
     }
 
+export const getGetPersonaBySlugUrl = (slug: string,) => {
+
+
+
+
+  return `/api/personas/by-slug/${slug}`
+}
+
+/**
+ * @summary Get persona by slug (public, used by chat page)
+ */
+export const getPersonaBySlug = async (slug: string, options?: Parameters<typeof customFetch>[1]): Promise<Persona> => {
+
+  return customFetch<Persona>(getGetPersonaBySlugUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPersonaBySlugQueryKey = (slug: string,) => {
+    return [
+    `/api/personas/by-slug/${slug}`
+    ] as const;
+    }
+
+
+export const getGetPersonaBySlugQueryOptions = <TData = Awaited<ReturnType<typeof getPersonaBySlug>>, TError = ErrorType<ApiError>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPersonaBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPersonaBySlugQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPersonaBySlug>>> = ({ signal }) => getPersonaBySlug(slug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: slug !== null && slug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPersonaBySlug>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPersonaBySlugQueryResult = NonNullable<Awaited<ReturnType<typeof getPersonaBySlug>>>
+export type GetPersonaBySlugQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get persona by slug (public, used by chat page)
+ */
+
+export function useGetPersonaBySlug<TData = Awaited<ReturnType<typeof getPersonaBySlug>>, TError = ErrorType<ApiError>>(
+ slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPersonaBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPersonaBySlugQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getListPersonasUrl = () => {
 
 

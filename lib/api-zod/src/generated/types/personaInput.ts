@@ -10,6 +10,8 @@ export interface PersonaInput {
   /** @nullable */
   personaTypeId?: number | null;
   name: string;
+  /** @nullable */
+  slug?: string | null;
   title: string;
   /** @nullable */
   photoUrl?: string | null;

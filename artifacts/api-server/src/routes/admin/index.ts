@@ -34,6 +34,17 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
+// ─── Helper: name → slug ──────────────────────────────────────────────────────
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/ł/g, "l").replace(/ą/g, "a").replace(/ę/g, "e")
+    .replace(/ó/g, "o").replace(/ś/g, "s").replace(/ź/g, "z")
+    .replace(/ż/g, "z").replace(/ć/g, "c").replace(/ń/g, "n")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 // ─── Helper: compute effective style ────────────────────────────────────────
 async function enrichPersona(persona: typeof personas.$inferSelect) {
   let personaTypeName: string | null = null;
@@ -231,6 +242,19 @@ router.post("/admin/persona-photo-upload", upload.single("photo"), async (req, r
   res.json({ photoUrl });
 });
 
+// ─── Public: persona by slug ─────────────────────────────────────────────────
+
+router.get("/personas/by-slug/:slug", async (req, res): Promise<void> => {
+  const slug = req.params.slug;
+  if (!slug) { res.status(400).json({ error: "slug required" }); return; }
+
+  const [persona] = await db.select().from(personas).where(eq(personas.slug, slug));
+  if (!persona) { res.status(404).json({ error: "Persona not found" }); return; }
+
+  const enriched = await enrichPersona(persona);
+  res.json(enriched);
+});
+
 // ─── Persona Types ────────────────────────────────────────────────────────────
 
 router.get("/admin/persona-types", async (_req, res): Promise<void> => {
@@ -325,11 +349,22 @@ router.post("/admin/personas", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
   const { personaTypeId, name, title, photoUrl, additionalPrompt, style } = parsed.data;
+  const baseSlug = toSlug(name);
+  // ensure uniqueness by appending suffix if needed
+  let slug = baseSlug;
+  let attempt = 0;
+  while (true) {
+    const [existing] = await db.select({ id: personas.id }).from(personas).where(eq(personas.slug, slug));
+    if (!existing) break;
+    attempt++;
+    slug = `${baseSlug}-${attempt}`;
+  }
   const [persona] = await db.insert(personas).values({
     personaTypeId: personaTypeId ?? null,
     name, title: title ?? "",
     photoUrl: photoUrl ?? null,
     additionalPrompt: additionalPrompt ?? "",
+    slug,
     style: style ?? null,
   }).returning();
 

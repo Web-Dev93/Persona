@@ -13,6 +13,8 @@ export interface Persona {
   /** @nullable */
   personaTypeName?: string | null;
   name: string;
+  /** @nullable */
+  slug?: string | null;
   title: string;
   /** @nullable */
   photoUrl?: string | null;

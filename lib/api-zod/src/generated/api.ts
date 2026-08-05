@@ -278,6 +278,7 @@ export const ListPersonaTypesResponseItem = zod.object({
   "personaTypeId": zod.int().nullish(),
   "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
+  "slug": zod.string().nullish(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
   "additionalPrompt": zod.string(),
@@ -372,6 +373,29 @@ export const DeletePersonaTypeResponse = zod.void()
 
 
 /**
+ * @summary Get persona by slug (public, used by chat page)
+ */
+export const GetPersonaBySlugParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetPersonaBySlugResponse = zod.object({
+  "id": zod.int(),
+  "personaTypeId": zod.int().nullish(),
+  "personaTypeName": zod.string().nullish(),
+  "name": zod.string(),
+  "slug": zod.string().nullish(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "additionalPrompt": zod.string(),
+  "style": zod.string().nullish(),
+  "effectiveStyle": zod.string(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List all personas
  */
 export const ListPersonasResponseItem = zod.object({
@@ -379,6 +403,7 @@ export const ListPersonasResponseItem = zod.object({
   "personaTypeId": zod.int().nullish(),
   "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
+  "slug": zod.string().nullish(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
   "additionalPrompt": zod.string(),
@@ -396,6 +421,7 @@ export const ListPersonasResponse = zod.array(ListPersonasResponseItem)
 export const CreatePersonaBody = zod.object({
   "personaTypeId": zod.int().nullish(),
   "name": zod.string(),
+  "slug": zod.string().nullish(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
   "additionalPrompt": zod.string(),
@@ -407,6 +433,7 @@ export const CreatePersonaResponse = zod.object({
   "personaTypeId": zod.int().nullish(),
   "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
+  "slug": zod.string().nullish(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
   "additionalPrompt": zod.string(),
@@ -425,6 +452,7 @@ export const GetActivePersonaResponse = zod.object({
   "personaTypeId": zod.int().nullish(),
   "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
+  "slug": zod.string().nullish(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
   "additionalPrompt": zod.string(),
@@ -447,6 +475,7 @@ export const GetPersonaResponse = zod.object({
   "personaTypeId": zod.int().nullish(),
   "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
+  "slug": zod.string().nullish(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
   "additionalPrompt": zod.string(),
@@ -467,6 +496,7 @@ export const UpdatePersonaParams = zod.object({
 export const UpdatePersonaBody = zod.object({
   "personaTypeId": zod.int().nullish(),
   "name": zod.string(),
+  "slug": zod.string().nullish(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
   "additionalPrompt": zod.string(),
@@ -478,6 +508,7 @@ export const UpdatePersonaResponse = zod.object({
   "personaTypeId": zod.int().nullish(),
   "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
+  "slug": zod.string().nullish(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
   "additionalPrompt": zod.string(),
@@ -510,6 +541,7 @@ export const ActivatePersonaResponse = zod.object({
   "personaTypeId": zod.int().nullish(),
   "personaTypeName": zod.string().nullish(),
   "name": zod.string(),
+  "slug": zod.string().nullish(),
   "title": zod.string(),
   "photoUrl": zod.string().nullish(),
   "additionalPrompt": zod.string(),

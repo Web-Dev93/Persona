@@ -7,6 +7,7 @@ export const personas = pgTable("personas", {
   title: text("title").notNull().default(""),
   photoUrl: text("photo_url"),
   additionalPrompt: text("additional_prompt").notNull().default(""),
+  slug: text("slug").unique(),
   style: text("style"),
   isActive: boolean("is_active").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),

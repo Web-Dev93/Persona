@@ -29,7 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Loader2, Trash2, MessageSquare, ArrowLeft, ImagePlus,
   CheckCircle2, Sparkles, Clock, Plus, UserCircle2, Zap,
-  Edit2, ChevronDown, ChevronUp, Layers, User, Wand2
+  Edit2, ChevronDown, ChevronUp, Layers, User, Wand2, Link2, Copy
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -555,6 +555,15 @@ function PersonaTypeCard({ pt, onRefresh }: { pt: PersonaTypeWithPersonas; onRef
                   {!persona.isActive && (
                     <Button size="sm" className="h-7 text-xs px-3" onClick={() => handleActivate(persona.id)} disabled={activatePersona.isPending}>
                       <Zap className="w-3 h-3 mr-1" />Aktywuj
+                    </Button>
+                  )}
+                  {persona.slug && (
+                    <Button variant="outline" size="sm" className="h-7 text-xs px-2 gap-1" title={`Link: /chat/${persona.slug}`} onClick={() => {
+                      const url = `${window.location.origin}/chat/${persona.slug}`;
+                      navigator.clipboard.writeText(url);
+                      toast({ title: "Link skopiowany!", description: url });
+                    }}>
+                      <Link2 className="w-3 h-3" />
                     </Button>
                   )}
                   <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => { setEditingPersona(persona); setShowPersonaForm(true); }}>

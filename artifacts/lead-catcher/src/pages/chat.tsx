@@ -5,6 +5,7 @@ import {
   useGetSessionByToken,
   useCompleteLead,
   useGetActivePersona,
+  useGetPersonaBySlug,
   AnthropicMessage
 } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -197,11 +198,16 @@ function Bubble({ msg, theme, personaInitial, personaPhoto, personaName, isMesse
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function ChatPage() {
+export default function ChatPage({ personaSlug }: { personaSlug?: string } = {}) {
   const { toast } = useToast();
 
-  const [sessionToken, setSessionToken] = useState<string | null>(localStorage.getItem("lead_session_token"));
-  const { data: persona } = useGetActivePersona({ query: { queryKey: ["/api/admin/personas/active"], retry: false } });
+  // Use a session key scoped to this persona so each persona gets its own conversation
+  const sessionKey = personaSlug ? `lead_session_token_${personaSlug}` : "lead_session_token";
+  const [sessionToken, setSessionToken] = useState<string | null>(localStorage.getItem(sessionKey));
+
+  const { data: activePersona } = useGetActivePersona({ query: { queryKey: ["/api/admin/personas/active"], retry: false, enabled: !personaSlug } });
+  const { data: slugPersona } = useGetPersonaBySlug(personaSlug ?? "", { query: { queryKey: ["/api/personas/by-slug", personaSlug], enabled: !!personaSlug, retry: false } });
+  const persona = personaSlug ? slugPersona : activePersona;
   const { data: sessionData, isLoading: loadingSession, refetch: refetchSession } = useGetSessionByToken(sessionToken || "", {
     query: { enabled: !!sessionToken, queryKey: ["/api/leads/session", sessionToken] }
   });
@@ -243,7 +249,7 @@ export default function ChatPage() {
         cid = nc.id;
         setConversationId(nc.id);
         setSessionToken(nc.sessionToken);
-        localStorage.setItem("lead_session_token", nc.sessionToken);
+        localStorage.setItem(sessionKey, nc.sessionToken);
       }
 
       const res = await fetch(`/api/anthropic/conversations/${cid}/messages`, {
