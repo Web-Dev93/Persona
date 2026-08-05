@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, conversations, messages } from "@workspace/db";
+import { db, conversations, messages, personas } from "@workspace/db";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getSetting } from "../../lib/settings";
 import {
@@ -147,8 +147,9 @@ router.post("/anthropic/conversations/:id/messages", async (req, res): Promise<v
     content: m.content,
   }));
 
-  // Load system prompt from DB settings
-  const systemPrompt = await getSetting("system_prompt");
+  // Use active persona's system prompt, fallback to global setting
+  const [activePersona] = await db.select().from(personas).where(eq(personas.isActive, true));
+  const systemPrompt = activePersona?.systemPrompt || await getSetting("system_prompt");
 
   // SSE headers
   res.setHeader("Content-Type", "text/event-stream");

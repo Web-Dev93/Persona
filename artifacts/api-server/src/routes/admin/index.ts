@@ -3,7 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
 import multer from "multer";
-import { db, conversations, messages } from "@workspace/db";
+import { db, conversations, messages, personas } from "@workspace/db";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { getSetting, setSetting, getAllSettings } from "../../lib/settings";
 import {
@@ -11,11 +11,13 @@ import {
   DeleteAdminLeadParams,
   SummarizeLeadParams,
   UpdateAdminSettingsBody,
+  CreatePersonaBody,
+  UpdatePersonaBody,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-// Upload directory for consultant photos
+// Upload directory for persona photos
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -25,7 +27,7 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, `consultant-photo-${Date.now()}${ext}`);
+    cb(null, `persona-photo-${Date.now()}${ext}`);
   },
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
@@ -96,7 +98,7 @@ router.delete("/admin/leads/:id", async (req, res): Promise<void> => {
   res.sendStatus(204);
 });
 
-// POST /admin/leads/:id/summarize — AI-generate a structured lead summary
+// POST /admin/leads/:id/summarize
 router.post("/admin/leads/:id/summarize", async (req, res): Promise<void> => {
   const params = SummarizeLeadParams.safeParse(req.params);
   if (!params.success) {
@@ -192,7 +194,7 @@ router.put("/admin/settings", async (req, res): Promise<void> => {
   });
 });
 
-// POST /admin/photo-upload — upload consultant photo
+// POST /admin/photo-upload — upload persona photo
 router.post("/admin/photo-upload", upload.single("photo"), async (req, res): Promise<void> => {
   if (!req.file) {
     res.status(400).json({ error: "No file uploaded" });
@@ -202,6 +204,145 @@ router.post("/admin/photo-upload", upload.single("photo"), async (req, res): Pro
   const basePath = process.env.BASE_PATH ?? "/api";
   const photoUrl = `${basePath}/static/uploads/${req.file.filename}`;
   await setSetting("consultant_photo_url", photoUrl);
+
+  res.json({ photoUrl });
+});
+
+// ─── PERSONAS ─────────────────────────────────────────────────────────────────
+
+// GET /admin/personas
+router.get("/admin/personas", async (_req, res): Promise<void> => {
+  const rows = await db.select().from(personas).orderBy(personas.createdAt);
+  res.json(rows);
+});
+
+// GET /admin/personas/active — MUST come before /:id
+router.get("/admin/personas/active", async (_req, res): Promise<void> => {
+  const [active] = await db.select().from(personas).where(eq(personas.isActive, true));
+  if (!active) {
+    res.status(404).json({ error: "No active persona" });
+    return;
+  }
+  res.json(active);
+});
+
+// POST /admin/personas
+router.post("/admin/personas", async (req, res): Promise<void> => {
+  const parsed = CreatePersonaBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { name, title, photoUrl, systemPrompt } = parsed.data;
+
+  const [persona] = await db
+    .insert(personas)
+    .values({ name, title: title ?? "", photoUrl: photoUrl ?? null, systemPrompt })
+    .returning();
+
+  res.status(201).json(persona);
+});
+
+// GET /admin/personas/:id
+router.get("/admin/personas/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  const [persona] = await db.select().from(personas).where(eq(personas.id, id));
+  if (!persona) {
+    res.status(404).json({ error: "Persona not found" });
+    return;
+  }
+
+  res.json(persona);
+});
+
+// PUT /admin/personas/:id
+router.put("/admin/personas/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  const parsed = UpdatePersonaBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const { name, title, photoUrl, systemPrompt } = parsed.data;
+
+  const [updated] = await db
+    .update(personas)
+    .set({ name, title: title ?? "", photoUrl: photoUrl ?? null, systemPrompt })
+    .where(eq(personas.id, id))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Persona not found" });
+    return;
+  }
+
+  res.json(updated);
+});
+
+// DELETE /admin/personas/:id
+router.delete("/admin/personas/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  const [deleted] = await db.delete(personas).where(eq(personas.id, id)).returning();
+  if (!deleted) {
+    res.status(404).json({ error: "Persona not found" });
+    return;
+  }
+
+  res.sendStatus(204);
+});
+
+// POST /admin/personas/:id/activate
+router.post("/admin/personas/:id/activate", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  // Deactivate all
+  await db.update(personas).set({ isActive: false });
+
+  // Activate the target
+  const [activated] = await db
+    .update(personas)
+    .set({ isActive: true })
+    .where(eq(personas.id, id))
+    .returning();
+
+  if (!activated) {
+    res.status(404).json({ error: "Persona not found" });
+    return;
+  }
+
+  res.json(activated);
+});
+
+// POST /admin/personas/photo-upload
+router.post("/admin/persona-photo-upload", upload.single("photo"), async (req, res): Promise<void> => {
+  if (!req.file) {
+    res.status(400).json({ error: "No file uploaded" });
+    return;
+  }
+
+  const basePath = process.env.BASE_PATH ?? "/api";
+  const photoUrl = `${basePath}/static/uploads/${req.file.filename}`;
 
   res.json({ photoUrl });
 });

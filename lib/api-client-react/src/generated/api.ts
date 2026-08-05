@@ -32,7 +32,9 @@ import type {
   LeadDetail,
   LeadSummarizeResult,
   LeadSummary,
-  MessageInput
+  MessageInput,
+  Persona,
+  PersonaInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1174,5 +1176,521 @@ export const useUpdateAdminSettings = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateAdminSettingsMutationOptions(options));
+    }
+
+export const getListPersonasUrl = () => {
+
+
+
+
+  return `/api/admin/personas`
+}
+
+/**
+ * @summary List all personas
+ */
+export const listPersonas = async ( options?: Parameters<typeof customFetch>[1]): Promise<Persona[]> => {
+
+  return customFetch<Persona[]>(getListPersonasUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPersonasQueryKey = () => {
+    return [
+    `/api/admin/personas`
+    ] as const;
+    }
+
+
+export const getListPersonasQueryOptions = <TData = Awaited<ReturnType<typeof listPersonas>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPersonas>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPersonasQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPersonas>>> = ({ signal }) => listPersonas({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPersonas>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPersonasQueryResult = NonNullable<Awaited<ReturnType<typeof listPersonas>>>
+export type ListPersonasQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all personas
+ */
+
+export function useListPersonas<TData = Awaited<ReturnType<typeof listPersonas>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPersonas>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPersonasQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePersonaUrl = () => {
+
+
+
+
+  return `/api/admin/personas`
+}
+
+/**
+ * @summary Create a new persona
+ */
+export const createPersona = async (personaInput: PersonaInput, options?: Parameters<typeof customFetch>[1]): Promise<Persona> => {
+
+  return customFetch<Persona>(getCreatePersonaUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(personaInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePersonaMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersona>>, TError,{data: BodyType<PersonaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPersona>>, TError,{data: BodyType<PersonaInput>}, TContext> => {
+
+const mutationKey = ['createPersona'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPersona>>, {data: BodyType<PersonaInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPersona(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePersonaMutationResult = NonNullable<Awaited<ReturnType<typeof createPersona>>>
+    export type CreatePersonaMutationBody = BodyType<PersonaInput>
+    export type CreatePersonaMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a new persona
+ */
+export const useCreatePersona = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPersona>>, TError,{data: BodyType<PersonaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPersona>>,
+        TError,
+        {data: BodyType<PersonaInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePersonaMutationOptions(options));
+    }
+
+export const getGetActivePersonaUrl = () => {
+
+
+
+
+  return `/api/admin/personas/active`
+}
+
+/**
+ * @summary Get the currently active persona
+ */
+export const getActivePersona = async ( options?: Parameters<typeof customFetch>[1]): Promise<Persona> => {
+
+  return customFetch<Persona>(getGetActivePersonaUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetActivePersonaQueryKey = () => {
+    return [
+    `/api/admin/personas/active`
+    ] as const;
+    }
+
+
+export const getGetActivePersonaQueryOptions = <TData = Awaited<ReturnType<typeof getActivePersona>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivePersona>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetActivePersonaQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActivePersona>>> = ({ signal }) => getActivePersona({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getActivePersona>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetActivePersonaQueryResult = NonNullable<Awaited<ReturnType<typeof getActivePersona>>>
+export type GetActivePersonaQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get the currently active persona
+ */
+
+export function useGetActivePersona<TData = Awaited<ReturnType<typeof getActivePersona>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivePersona>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetActivePersonaQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPersonaUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/personas/${id}`
+}
+
+/**
+ * @summary Get a persona by ID
+ */
+export const getPersona = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Persona> => {
+
+  return customFetch<Persona>(getGetPersonaUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPersonaQueryKey = (id: number,) => {
+    return [
+    `/api/admin/personas/${id}`
+    ] as const;
+    }
+
+
+export const getGetPersonaQueryOptions = <TData = Awaited<ReturnType<typeof getPersona>>, TError = ErrorType<ApiError>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPersona>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPersonaQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPersona>>> = ({ signal }) => getPersona(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPersona>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPersonaQueryResult = NonNullable<Awaited<ReturnType<typeof getPersona>>>
+export type GetPersonaQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get a persona by ID
+ */
+
+export function useGetPersona<TData = Awaited<ReturnType<typeof getPersona>>, TError = ErrorType<ApiError>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPersona>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPersonaQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdatePersonaUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/personas/${id}`
+}
+
+/**
+ * @summary Update a persona
+ */
+export const updatePersona = async (id: number,
+    personaInput: PersonaInput, options?: Parameters<typeof customFetch>[1]): Promise<Persona> => {
+
+  return customFetch<Persona>(getUpdatePersonaUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(personaInput)
+  }
+);}
+
+
+
+
+
+export const getUpdatePersonaMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePersona>>, TError,{id: number;data: BodyType<PersonaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePersona>>, TError,{id: number;data: BodyType<PersonaInput>}, TContext> => {
+
+const mutationKey = ['updatePersona'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePersona>>, {id: number;data: BodyType<PersonaInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePersona(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePersonaMutationResult = NonNullable<Awaited<ReturnType<typeof updatePersona>>>
+    export type UpdatePersonaMutationBody = BodyType<PersonaInput>
+    export type UpdatePersonaMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update a persona
+ */
+export const useUpdatePersona = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePersona>>, TError,{id: number;data: BodyType<PersonaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePersona>>,
+        TError,
+        {id: number;data: BodyType<PersonaInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePersonaMutationOptions(options));
+    }
+
+export const getDeletePersonaUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/personas/${id}`
+}
+
+/**
+ * @summary Delete a persona
+ */
+export const deletePersona = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeletePersonaUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeletePersonaMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePersona>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePersona>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deletePersona'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePersona>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deletePersona(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePersonaMutationResult = NonNullable<Awaited<ReturnType<typeof deletePersona>>>
+
+    export type DeletePersonaMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Delete a persona
+ */
+export const useDeletePersona = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePersona>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deletePersona>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeletePersonaMutationOptions(options));
+    }
+
+export const getActivatePersonaUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/personas/${id}/activate`
+}
+
+/**
+ * @summary Set a persona as the active one
+ */
+export const activatePersona = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<Persona> => {
+
+  return customFetch<Persona>(getActivatePersonaUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getActivatePersonaMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activatePersona>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof activatePersona>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['activatePersona'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof activatePersona>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  activatePersona(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ActivatePersonaMutationResult = NonNullable<Awaited<ReturnType<typeof activatePersona>>>
+
+    export type ActivatePersonaMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Set a persona as the active one
+ */
+export const useActivatePersona = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activatePersona>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof activatePersona>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getActivatePersonaMutationOptions(options));
     }
 

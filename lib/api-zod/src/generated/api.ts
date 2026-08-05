@@ -245,3 +245,124 @@ export const UpdateAdminSettingsResponse = zod.object({
 })
 
 
+/**
+ * @summary List all personas
+ */
+export const ListPersonasResponseItem = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "systemPrompt": zod.string(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+export const ListPersonasResponse = zod.array(ListPersonasResponseItem)
+
+
+/**
+ * @summary Create a new persona
+ */
+export const CreatePersonaBody = zod.object({
+  "name": zod.string(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "systemPrompt": zod.string()
+})
+
+export const CreatePersonaResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "systemPrompt": zod.string(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get the currently active persona
+ */
+export const GetActivePersonaResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "systemPrompt": zod.string(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get a persona by ID
+ */
+export const GetPersonaParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetPersonaResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "systemPrompt": zod.string(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a persona
+ */
+export const UpdatePersonaParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdatePersonaBody = zod.object({
+  "name": zod.string(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "systemPrompt": zod.string()
+})
+
+export const UpdatePersonaResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "systemPrompt": zod.string(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a persona
+ */
+export const DeletePersonaParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeletePersonaResponse = zod.void()
+
+
+/**
+ * @summary Set a persona as the active one
+ */
+export const ActivatePersonaParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ActivatePersonaResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "title": zod.string(),
+  "photoUrl": zod.string().nullish(),
+  "systemPrompt": zod.string(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+

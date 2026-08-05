@@ -19,3 +19,5 @@ export * from './leadDetail';
 export * from './leadSummarizeResult';
 export * from './leadSummary';
 export * from './messageInput';
+export * from './persona';
+export * from './personaInput';

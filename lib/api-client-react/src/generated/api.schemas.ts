@@ -101,3 +101,22 @@ export interface AppSettingsUpdate {
   consultantPhotoUrl?: string | null;
 }
 
+export interface Persona {
+  id: number;
+  name: string;
+  title: string;
+  /** @nullable */
+  photoUrl?: string | null;
+  systemPrompt: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface PersonaInput {
+  name: string;
+  title: string;
+  /** @nullable */
+  photoUrl?: string | null;
+  systemPrompt: string;
+}
+

@@ -312,6 +312,155 @@ paths:
               schema:
                 $ref: "#/components/schemas/AppSettings"
 
+  /admin/personas:
+    get:
+      operationId: listPersonas
+      tags: [admin]
+      summary: List all personas
+      responses:
+        "200":
+          description: List of personas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Persona"
+    post:
+      operationId: createPersona
+      tags: [admin]
+      summary: Create a new persona
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonaInput"
+      responses:
+        "201":
+          description: Created persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+
+  /admin/personas/active:
+    get:
+      operationId: getActivePersona
+      tags: [admin]
+      summary: Get the currently active persona
+      responses:
+        "200":
+          description: Active persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+        "404":
+          description: No active persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/personas/{id}:
+    get:
+      operationId: getPersona
+      tags: [admin]
+      summary: Get a persona by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: updatePersona
+      tags: [admin]
+      summary: Update a persona
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonaInput"
+      responses:
+        "200":
+          description: Updated persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deletePersona
+      tags: [admin]
+      summary: Delete a persona
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/personas/{id}/activate:
+    post:
+      operationId: activatePersona
+      tags: [admin]
+      summary: Set a persona as the active one
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Activated persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
     HealthStatus:
@@ -530,3 +679,45 @@ components:
           type: string
         consultantPhotoUrl:
           type: ["string", "null"]
+
+    Persona:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        title:
+          type: string
+        photoUrl:
+          type: ["string", "null"]
+        systemPrompt:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - title
+        - systemPrompt
+        - isActive
+        - createdAt
+
+    PersonaInput:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        photoUrl:
+          type: ["string", "null"]
+        systemPrompt:
+          type: string
+      required:
+        - name
+        - title
+        - systemPrompt
