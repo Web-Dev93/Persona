@@ -45,6 +45,9 @@ const DEFAULTS: Record<string, string> = {
   consultant_name: "Konsultant",
   consultant_title: "Specjalista ds. Strategii Cyfrowej",
   consultant_photo_url: "",
+  sales_enabled: "false",
+  timer_mode: "disabled",
+  timer_hours: "24",
 };
 
 export async function getSetting(key: string): Promise<string> {

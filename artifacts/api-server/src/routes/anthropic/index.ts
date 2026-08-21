@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, conversations, messages, personas, personaTypes } from "@workspace/db";
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { openrouter, openRouterModel } from "@workspace/integrations-anthropic-ai";
 import { getSetting } from "../../lib/settings";
+import { logger } from "../../lib/logger";
 import {
   CreateAnthropicConversationBody,
   GetAnthropicConversationParams,
@@ -74,6 +75,7 @@ router.post("/anthropic/conversations/:id/messages", async (req, res): Promise<v
 
   const convId = parseInt(req.params.id, 10);
   const userContent = body.data.content;
+  const customSystemPrompt = typeof (req.body as any)?.customSystemPrompt === "string" ? (req.body as any).customSystemPrompt : null;
   if (!userContent || typeof userContent !== "string") {
     res.status(400).json({ error: "content is required" });
     return;
@@ -85,42 +87,45 @@ router.post("/anthropic/conversations/:id/messages", async (req, res): Promise<v
   await db.insert(messages).values({ conversationId: convId, role: "user", content: userContent });
 
   const history = await db.select().from(messages).where(eq(messages.conversationId, convId)).orderBy(messages.createdAt);
-  const chatMessages = history.map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
 
   // Build system prompt: personaType.systemPrompt + persona.additionalPrompt
   let systemPrompt = await getSetting("system_prompt");
 
-  const personaId = conv?.personaId;
-  if (personaId) {
-    const [persona] = await db.select().from(personas).where(eq(personas.id, personaId));
-    if (persona) {
-      let basePrompt = persona.additionalPrompt || "";
-      if (persona.personaTypeId) {
-        const [pt] = await db.select().from(personaTypes).where(eq(personaTypes.id, persona.personaTypeId));
-        if (pt && pt.systemPrompt) {
-          basePrompt = pt.systemPrompt;
-          if (persona.additionalPrompt) {
-            basePrompt += `\n\n---\n\nDODATKOWE WYTYCZNE DLA TEJ KONKRETNEJ PERSONY:\n${persona.additionalPrompt}`;
-          }
-        }
-      }
-      if (basePrompt) systemPrompt = basePrompt;
-    }
+  if (customSystemPrompt && customSystemPrompt.trim().length > 0) {
+    systemPrompt = customSystemPrompt;
   } else {
-    // Fallback: check active persona
-    const [activePersona] = await db.select().from(personas).where(eq(personas.isActive, true));
-    if (activePersona) {
-      let basePrompt = activePersona.additionalPrompt || "";
-      if (activePersona.personaTypeId) {
-        const [pt] = await db.select().from(personaTypes).where(eq(personaTypes.id, activePersona.personaTypeId));
-        if (pt && pt.systemPrompt) {
-          basePrompt = pt.systemPrompt;
-          if (activePersona.additionalPrompt) {
-            basePrompt += `\n\n---\n\nDODATKOWE WYTYCZNE DLA TEJ KONKRETNEJ PERSONY:\n${activePersona.additionalPrompt}`;
+    const personaId = conv?.personaId;
+    if (personaId) {
+      const [persona] = await db.select().from(personas).where(eq(personas.id, personaId));
+      if (persona) {
+        let basePrompt = persona.additionalPrompt || "";
+        if (persona.personaTypeId) {
+          const [pt] = await db.select().from(personaTypes).where(eq(personaTypes.id, persona.personaTypeId));
+          if (pt && pt.systemPrompt) {
+            basePrompt = pt.systemPrompt;
+            if (persona.additionalPrompt) {
+              basePrompt += `\n\n---\n\nDODATKOWE WYTYCZNE DLA TEJ KONKRETNEJ PERSONY:\n${persona.additionalPrompt}`;
+            }
           }
         }
+        if (basePrompt) systemPrompt = basePrompt;
       }
-      if (basePrompt) systemPrompt = basePrompt;
+    } else {
+      // Fallback: check active persona
+      const [activePersona] = await db.select().from(personas).where(eq(personas.isActive, true));
+      if (activePersona) {
+        let basePrompt = activePersona.additionalPrompt || "";
+        if (activePersona.personaTypeId) {
+          const [pt] = await db.select().from(personaTypes).where(eq(personaTypes.id, activePersona.personaTypeId));
+          if (pt && pt.systemPrompt) {
+            basePrompt = pt.systemPrompt;
+            if (activePersona.additionalPrompt) {
+              basePrompt += `\n\n---\n\nDODATKOWE WYTYCZNE DLA TEJ KONKRETNEJ PERSONY:\n${activePersona.additionalPrompt}`;
+            }
+          }
+        }
+        if (basePrompt) systemPrompt = basePrompt;
+      }
     }
   }
 
@@ -131,21 +136,44 @@ router.post("/anthropic/conversations/:id/messages", async (req, res): Promise<v
 
   let fullResponse = "";
 
-  const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
-    max_tokens: 8192,
-    system: systemPrompt,
-    messages: chatMessages,
-  });
+  try {
+    const chatMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [];
+    if (systemPrompt) {
+      chatMessages.push({ role: "system", content: systemPrompt });
+    }
+    for (const m of history) {
+      chatMessages.push({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.content,
+      });
+    }
 
-  for await (const event of stream) {
-    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-      fullResponse += event.delta.text;
-      res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
+    const stream = await openrouter.chat.completions.create({
+      model: openRouterModel,
+      messages: chatMessages,
+      stream: true,
+      max_tokens: 4096,
+    });
+
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content || "";
+      if (text) {
+        fullResponse += text;
+        res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+      }
+    }
+
+    await db.insert(messages).values({ conversationId: convId, role: "assistant", content: fullResponse });
+  } catch (error: any) {
+    logger.error({ err: error }, "Error streaming chat from OpenRouter DeepSeek");
+    const fallbackMsg = "Przepraszam, wystąpił chwilowy problem z połączeniem. Spróbuj wysłać wiadomość ponownie za moment.";
+    if (!fullResponse) {
+      fullResponse = fallbackMsg;
+      res.write(`data: ${JSON.stringify({ content: fallbackMsg })}\n\n`);
+      await db.insert(messages).values({ conversationId: convId, role: "assistant", content: fallbackMsg });
     }
   }
 
-  await db.insert(messages).values({ conversationId: convId, role: "assistant", content: fullResponse });
   res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
   res.end();
 });

@@ -1,0 +1,6 @@
+{
+  "name": "Persona Lead Catcher",
+  "description": "AI-powered lead capture chatbot and consultation platform for web agencies.",
+  "permissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
