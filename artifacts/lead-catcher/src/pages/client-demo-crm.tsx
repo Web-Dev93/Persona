@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useRoute } from "wouter";
-import { useListAdminLeads } from "@workspace/api-client-react";
+import { useListAdminLeads, useGetPublicSettings } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Clock, ShieldCheck, UserCheck, MessageSquare, Phone, Mail,
@@ -31,24 +31,43 @@ export default function ClientDemoCrmPage() {
   const demoLeads = allLeads.slice(0, 10);
   const selectedLead = demoLeads.find(l => l.id === selectedLeadId) || demoLeads[0];
 
-  // 24h Countdown logic
-  const [timeLeftStr, setTimeLeftStr] = useState<string>("23h 58m 12s");
+  // Demo validity countdown. Length and on/off come from the admin panel, and the
+  // start is pinned per demo so a page reload does not hand out a fresh 24 hours.
+  const { data: publicSettings } = useGetPublicSettings({
+    query: { queryKey: ["/api/public/settings"], retry: false },
+  });
+  const timerEnabled = (publicSettings?.timerMode ?? "disabled") !== "disabled";
+  const timerHours = publicSettings?.timerHours ?? 24;
+
+  const [timeLeftStr, setTimeLeftStr] = useState<string>("—");
 
   useEffect(() => {
-    const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
-    const interval = setInterval(() => {
+    if (!timerEnabled) return;
+
+    const startKey = `demo_started_${hash}`;
+    let startedAt = Number(localStorage.getItem(startKey));
+    if (!startedAt || Number.isNaN(startedAt)) {
+      startedAt = Date.now();
+      localStorage.setItem(startKey, String(startedAt));
+    }
+    const expiresAt = startedAt + timerHours * 60 * 60 * 1000;
+
+    const tick = () => {
       const diff = expiresAt - Date.now();
       if (diff <= 0) {
         setTimeLeftStr("Wygasło");
-      } else {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const secs = Math.floor((diff % (1000 * 60)) / 1000);
-        setTimeLeftStr(`${hours}h ${mins}m ${secs}s`);
+        return;
       }
-    }, 1000);
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+      setTimeLeftStr(`${hours}h ${mins}m ${secs}s`);
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [hash, timerEnabled, timerHours]);
 
   return (
     <div className="min-h-screen bg-slate-100/90 text-slate-800 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
@@ -70,10 +89,12 @@ export default function ClientDemoCrmPage() {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 glass-matte px-3 py-1 font-mono text-[11px] text-amber-800 rounded-xs border border-amber-300/60 shadow-2xs">
-            <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" />
-            <span className="font-bold">Ważność podglądu: {timeLeftStr}</span>
-          </div>
+          {timerEnabled && (
+            <div className="flex items-center gap-1.5 glass-matte px-3 py-1 font-mono text-[11px] text-amber-800 rounded-xs border border-amber-300/60 shadow-2xs">
+              <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" />
+              <span className="font-bold">Ważność podglądu: {timeLeftStr}</span>
+            </div>
+          )}
           <Link href={`/demo/${hash}`}>
             <button className="h-7 px-3 text-xs glass-btn text-slate-700 hover:text-slate-900 font-medium flex items-center gap-1 rounded-xs cursor-pointer">
               <ArrowLeft className="w-3.5 h-3.5" />

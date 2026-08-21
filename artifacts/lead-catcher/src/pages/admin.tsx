@@ -1748,7 +1748,7 @@ function StylesheetStudioTab() {
                     <div
                       className="text-[11px] px-3 py-1.5 rounded-2xl max-w-[85%] shadow-xs leading-relaxed"
                       style={{
-                        backgroundColor: st.botBubble,
+                        background: st.botBubble,
                         color: st.botText,
                         border: st.botBorder,
                       }}
@@ -1796,8 +1796,8 @@ function StylesheetStudioTab() {
                   <span className="font-mono text-[10px]">Accent: {st.color}</span>
                   <div className="flex items-center gap-1">
                     <span className="w-3 h-3 rounded-full border shadow-2xs" style={{ backgroundColor: st.bg }} title="Tło czatu" />
-                    <span className="w-3 h-3 rounded-full border shadow-2xs" style={{ backgroundColor: st.headerBg }} title="Nagłówek" />
-                    <span className="w-3 h-3 rounded-full border shadow-2xs" style={{ backgroundColor: st.botBubble }} title="Dymek asystenta" />
+                    <span className="w-3 h-3 rounded-full border shadow-2xs" style={{ background: st.headerBg }} title="Nagłówek" />
+                    <span className="w-3 h-3 rounded-full border shadow-2xs" style={{ background: st.botBubble }} title="Dymek asystenta" />
                     <span className="w-3 h-3 rounded-full shadow-2xs" style={{ background: userBg }} title="Dymek użytkownika" />
                   </div>
                 </div>
@@ -2046,7 +2046,7 @@ function PresentationDeckTab() {
               <div
                 className="px-4 py-3 flex items-center justify-between shadow-xs shrink-0"
                 style={{
-                  backgroundColor: theme.headerBg,
+                  background: theme.headerBg,
                   borderBottom: theme.headerBorder,
                   color: theme.headerText,
                 }}
@@ -2130,7 +2130,7 @@ function PresentationDeckTab() {
                                   : "16px 16px 4px 16px",
                             }
                           : {
-                              backgroundColor: theme.botBubble,
+                              background: theme.botBubble,
                               border: theme.botBorder,
                               color: theme.botText,
                               borderRadius:
@@ -2146,7 +2146,7 @@ function PresentationDeckTab() {
                 ))}
 
                 {isSimTyping && (
-                  <div className="flex items-center gap-1 p-2 rounded-xl w-14" style={{ backgroundColor: theme.botBubble }}>
+                  <div className="flex items-center gap-1 p-2 rounded-xl w-14" style={{ background: theme.botBubble }}>
                     <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: theme.typingDot }} />
                     <span className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:150ms]" style={{ backgroundColor: theme.typingDot }} />
                     <span className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:300ms]" style={{ backgroundColor: theme.typingDot }} />
@@ -2158,7 +2158,7 @@ function PresentationDeckTab() {
               <div
                 className="p-2.5 shrink-0 flex items-center gap-2"
                 style={{
-                  backgroundColor: theme.headerBg,
+                  background: theme.headerBg,
                   borderTop: theme.headerBorder,
                 }}
               >
