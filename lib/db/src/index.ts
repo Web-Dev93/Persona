@@ -6,11 +6,12 @@ import path from "path";
 import fs from "fs";
 import * as schema from "./schema";
 import { seedDatabase } from "./seed";
+import type { Database } from "./database";
 
 const { Pool } = pg;
 
-let pool: any = null;
-let db: any = null;
+let pool: pg.Pool | null = null;
+let db: Database | null = null;
 
 const INIT_SQL = `
   CREATE TABLE IF NOT EXISTS persona_types (
@@ -58,16 +59,28 @@ const INIT_SQL = `
     title TEXT NOT NULL,
     session_token TEXT NOT NULL,
     email_sent BOOLEAN NOT NULL DEFAULT false,
+    webhook_sent BOOLEAN NOT NULL DEFAULT false,
     completed BOOLEAN NOT NULL DEFAULT false,
     summary TEXT,
+    requirements TEXT,
+    contact_name TEXT,
+    contact_email TEXT,
+    contact_phone TEXT,
+    contact_company TEXT,
     persona_id INTEGER REFERENCES personas(id) ON DELETE SET NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
   );
 
   ALTER TABLE conversations ADD COLUMN IF NOT EXISTS persona_id INTEGER REFERENCES personas(id) ON DELETE SET NULL;
   ALTER TABLE conversations ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT false;
+  ALTER TABLE conversations ADD COLUMN IF NOT EXISTS webhook_sent BOOLEAN DEFAULT false;
   ALTER TABLE conversations ADD COLUMN IF NOT EXISTS completed BOOLEAN DEFAULT false;
   ALTER TABLE conversations ADD COLUMN IF NOT EXISTS summary TEXT;
+  ALTER TABLE conversations ADD COLUMN IF NOT EXISTS requirements TEXT;
+  ALTER TABLE conversations ADD COLUMN IF NOT EXISTS contact_name TEXT;
+  ALTER TABLE conversations ADD COLUMN IF NOT EXISTS contact_email TEXT;
+  ALTER TABLE conversations ADD COLUMN IF NOT EXISTS contact_phone TEXT;
+  ALTER TABLE conversations ADD COLUMN IF NOT EXISTS contact_company TEXT;
   ALTER TABLE conversations ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();
 
   CREATE TABLE IF NOT EXISTS messages (
@@ -75,6 +88,16 @@ const INIT_SQL = `
     conversation_id INTEGER NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
     role TEXT NOT NULL,
     content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );
+
+  CREATE TABLE IF NOT EXISTS attachments (
+    id SERIAL PRIMARY KEY,
+    conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE,
+    file_name TEXT NOT NULL,
+    file_url TEXT NOT NULL,
+    mime_type TEXT NOT NULL DEFAULT '',
+    size_bytes INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
   );
 
@@ -103,8 +126,9 @@ if (dbUrl) {
     pool = testPool;
     db = drizzlePg(pool, { schema });
     console.log("[DB] Connected successfully to PostgreSQL database:", dbUrl.replace(/:[^:@]+@/, ":***@"));
-  } catch (err: any) {
-    console.warn("[DB] Could not connect to PostgreSQL (" + err.message + "). Falling back to embedded persistent PGlite storage.");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn("[DB] Could not connect to PostgreSQL (" + message + "). Falling back to embedded persistent PGlite storage.");
   }
 }
 
@@ -116,17 +140,21 @@ if (!db) {
   }
   const pglite = new PGlite(path.join(dataDir, "pgdata"));
 
-  await pglite.exec(INIT_SQL).catch((err) => {
-    console.warn("[DB] PGlite table init notice:", err.message);
+  await pglite.exec(INIT_SQL).catch((err: unknown) => {
+    console.warn("[DB] PGlite table init notice:", err instanceof Error ? err.message : err);
   });
 
-  db = drizzlePglite(pglite, { schema });
+  db = drizzlePglite(pglite, { schema }) as unknown as Database;
   console.log("[DB] Initialized embedded PGlite database storage.");
 }
 
-// Seed predefined types and personas
-await seedDatabase(db);
+const database: Database = db;
 
-export { pool, db };
+// Seed predefined types and personas
+await seedDatabase(database);
+
+export { pool };
+export type { Database } from "./database";
+export { database as db };
 export * from "./schema";
 export * from "./seed";

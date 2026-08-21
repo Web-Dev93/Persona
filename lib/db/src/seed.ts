@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import type { Database } from "./database";
 import { personaTypes } from "./schema/persona-types";
 import { personas } from "./schema/personas";
 
@@ -37,7 +38,7 @@ Zacznij od ciepłego, profesjonalnego przywitania i pytania o firmę klienta ora
         slug: "maciek",
         title: "Aplikacje SaaS & platformy B2B",
         photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "intercom",
+        style: "intercom_modern",
         isActive: false,
         additionalPrompt: "Masz na imię Maciek. Specjalizujesz się w zaawansowanych stronach B2B, portalach klienta i aplikacjach SaaS. Zadajesz strategiczne pytania o procesy biznesowe i automatyzację.",
       },
@@ -47,7 +48,7 @@ Zacznij od ciepłego, profesjonalnego przywitania i pytania o firmę klienta ora
     name: "Koleżanka & Social",
     slug: "kolezanka",
     description: "Przyjazna, ciepła persona. Zbiera informacje w stylu naturalnej rozmowy.",
-    defaultStyle: "dating",
+    defaultStyle: "rose_luxury",
     color: "#fe3c72",
     systemPrompt: `Jesteś sympatyczną, ciepłą dziewczyną, która nawiązuje naturalną rozmowę z rozmówcą. Twoim celem jest zebranie informacji o jego potrzebach i pomysłach w sposób przyjazny, lekki i nienachalny.
 
@@ -66,7 +67,7 @@ Zacznij od serdecznego "Hej! Miło Cię poznać 😊" i zapytaj, jak mija dzień
         slug: "ania",
         title: "Ciepła & pełna pozytywnej energii",
         photoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "dating",
+        style: "rose_luxury",
         isActive: true,
         additionalPrompt: "Masz na imię Ania. Jesteś pełna pozytywnej energii, uśmiechnięta, uwielbiasz kreatywne pomysły, natychmiast skracasz dystans i budujesz zaufanie.",
       },
@@ -75,7 +76,7 @@ Zacznij od serdecznego "Hej! Miło Cię poznać 😊" i zapytaj, jak mija dzień
         slug: "kasia",
         title: "Empatyczna & uważna słuchaczka",
         photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "instagram",
+        style: "rose_luxury",
         isActive: false,
         additionalPrompt: "Masz na imię Kasia. Jesteś spokojna, bardzo wrażliwa i uważna. Skupiasz się na emocjach, estetyce i pomagasz rozmówcy precyzyjnie nazwać jego wizję.",
       },
@@ -123,7 +124,7 @@ Zacznij od powitania i pytania, z jakim autem i objawami klient się zgłasza.`,
     name: "Doradca Prawny & Kancelaria",
     slug: "doradca-prawny",
     description: "Profesjonalny, precyzyjny. Zbiera informacje o sprawie i kieruje do konsultacji.",
-    defaultStyle: "banking",
+    defaultStyle: "corporate_dark",
     color: "#1e3a5f",
     systemPrompt: `Jesteś doradcą w renomowanej kancelarii prawnej. Twoim zadaniem jest zebranie wstępnych informacji o sprawie klienta i przygotowanie gruntu pod konsultację prawną.
 
@@ -142,7 +143,7 @@ Zacznij od profesjonalnego powitania i zapytania, w jakiej dziedzinie prawnej kl
         slug: "monika",
         title: "Prawo cywilne, spadkowe & majątkowe",
         photoUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "banking",
+        style: "corporate_dark",
         isActive: false,
         additionalPrompt: "Masz na imię Monika. Jesteś empatyczna, dyskretna i opanowana. Prowadzisz rozmowy o sprawach prywatnych i majątkowych z wyczuciem i taktem.",
       },
@@ -188,7 +189,7 @@ Zacznij od serdecznego powitania i zapytaj, jakiego typu nieruchomości klient p
         slug: "zosia",
         title: "Rynek wtórny, apartamenty & domy",
         photoUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "instagram",
+        style: "rose_luxury",
         isActive: false,
         additionalPrompt: "Masz na imię Zosia. Masz doskonałe wyczucie stylu, klimatu starych kamienic, domów jednorodzinnych i potencjału aranżacyjnego przestrzeni.",
       },
@@ -198,7 +199,7 @@ Zacznij od serdecznego powitania i zapytaj, jakiego typu nieruchomości klient p
     name: "Trener Personalny & Dietetyk",
     slug: "trener-dietetyk",
     description: "Zbiera cele sylwetkowe, zdrowotne i nawyki żywieniowe, dobiera plan.",
-    defaultStyle: "instagram",
+    defaultStyle: "rose_luxury",
     color: "#d62976",
     systemPrompt: `Jesteś profesjonalnym trenerem personalnym i certyfikowanym dietetykiem. Twoim zadaniem jest zebranie szczegółowych informacji o celach treningowych i żywieniowych klienta, aby dobrać optymalny plan współpracy.
 
@@ -216,7 +217,7 @@ Zacznij od energetycznego powitania i zapytaj, jaki cel sylwetkowy lub zdrowotny
         slug: "marta",
         title: "Trening funkcjonalny, redukcja & nawyki",
         photoUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "instagram",
+        style: "rose_luxury",
         isActive: false,
         additionalPrompt: "Masz na imię Marta. Jesteś motywującą trenerką kobiet i mężczyzn, skupiasz się na trwałej zmianie nawyków, zdrowej relacji z jedzeniem i energii życiowej.",
       },
@@ -235,7 +236,7 @@ Zacznij od energetycznego powitania i zapytaj, jaki cel sylwetkowy lub zdrowotny
     name: "Kosmetolog & Salon Beauty",
     slug: "kosmetologia-beauty",
     description: "Konsultuje stan skóry, dobiera zabiegi i pielęgnację domową.",
-    defaultStyle: "instagram",
+    defaultStyle: "rose_luxury",
     color: "#ec4899",
     systemPrompt: `Jesteś wykwalifikowanym kosmetologiem i specjalistą w renomowanej klinice medycyny estetycznej i kosmetologii. Twoim zadaniem jest zebranie informacji o potrzebach skórnych klienta i zarekomendowanie odpowiedniej procedury zabiegowej.
 
@@ -253,7 +254,7 @@ Zacznij od ciepłego powitania i zapytaj, jaki obszar lub problem skóry klient 
         slug: "oliwia",
         title: "Terapia trądziku, mezoterapia & anti-aging",
         photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "instagram",
+        style: "rose_luxury",
         isActive: false,
         additionalPrompt: "Masz na imię Oliwia. Jesteś pasjonatką nowoczesnej kosmetologii i terapii celowanych. Tłumaczysz składowe zabiegów i kładziesz nacisk na barierę hydrolipidową.",
       },
@@ -262,7 +263,7 @@ Zacznij od ciepłego powitania i zapytaj, jaki obszar lub problem skóry klient 
         slug: "natalia",
         title: "Pielęgnacja holistyczna & masaże kobido",
         photoUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "dating",
+        style: "rose_luxury",
         isActive: false,
         additionalPrompt: "Masz na imię Natalia. Specjalizujesz się w liftingu naturalnym, rytuałach relaksacyjnych i nieinwazyjnej biostymulacji.",
       },
@@ -272,7 +273,7 @@ Zacznij od ciepłego powitania i zapytaj, jaki obszar lub problem skóry klient 
     name: "Księgowość & Doradztwo Podatkowe",
     slug: "ksiegowosc-podatki",
     description: "Zbiera profil firmy (JDG, sp. z o.o.), wolumen faktur i dobiera pakiet obsługi.",
-    defaultStyle: "banking",
+    defaultStyle: "corporate_dark",
     color: "#334155",
     systemPrompt: `Jesteś głównym doradcą w biurze rachunkowym i podatkowym. Twoim zadaniem jest zebranie informacji o profilu działalności klienta, aby przygotować ofertę kompleksowej obsługi księgowo-kadrowej.
 
@@ -290,7 +291,7 @@ Zacznij od powitania i pytania, czy firma już funkcjonuje, czy klient planuje d
         slug: "adam",
         title: "Księgowość spółek z o.o. & optymalizacja B2B",
         photoUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "banking",
+        style: "corporate_dark",
         isActive: false,
         additionalPrompt: "Masz na imię Adam. Specjalizujesz się w pełnej księgowości, CIT, estońskim CIT i przekształceniach działalności w spółki.",
       },
@@ -299,7 +300,7 @@ Zacznij od powitania i pytania, czy firma już funkcjonuje, czy klient planuje d
         slug: "ewa",
         title: "Księgowość JDG, ryczałt & branża IT",
         photoUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "intercom",
+        style: "intercom_modern",
         isActive: false,
         additionalPrompt: "Masz na imię Ewa. Prowadzisz jednoosobowe działalności gospodarcze, programistów B2B, ryczałt ewidencjonowany oraz ulgi IP Box.",
       },
@@ -335,7 +336,7 @@ Zacznij od przyjaznego powitania i zapytaj, jakiego języka i z myślą o jakim 
         slug: "michal",
         title: "Hiszpański, włoski & nauka konwersacyjna",
         photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&h=400&q=80",
-        style: "casual",
+        style: "messenger",
         isActive: false,
         additionalPrompt: "Masz na imię Michał. Prowadzisz dynamiczne konwersacje z hiszpańskiego i włoskiego z naciskiem na żywy język, podróże i kulturę.",
       },
@@ -380,7 +381,7 @@ Zacznij od radosnego powitania i zapytaj, jakie niezwykłe wydarzenie klient pla
   },
 ];
 
-export async function seedDatabase(db: any) {
+export async function seedDatabase(db: Database) {
   try {
     console.log("[DB Seed] Checking database seed status...");
     
@@ -449,7 +450,7 @@ export async function seedDatabase(db: any) {
     }
 
     console.log("[DB Seed] Database seeding completed successfully.");
-  } catch (err: any) {
-    console.error("[DB Seed] Error during seeding:", err.message);
+  } catch (err) {
+    console.error("[DB Seed] Error during seeding:", err instanceof Error ? err.message : err);
   }
 }

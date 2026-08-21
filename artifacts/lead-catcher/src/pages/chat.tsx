@@ -23,9 +23,9 @@ function fmt(iso: string) {
   try { return format(new Date(iso), "HH:mm"); } catch { return ""; }
 }
 
-function getBg(v: string | { gradient: string }): React.CSSProperties {
-  if (typeof v === "string") return { backgroundColor: v };
-  return { background: v.gradient };
+/** Bubble backgrounds are plain CSS values, so gradients work as-is. */
+function getBg(v: string): React.CSSProperties {
+  return { background: v };
 }
 
 // ─── Message Bubble Component ──────────────────────────────────────────────────
@@ -128,6 +128,10 @@ function Bubble({
 
 export default function ChatPage({ personaSlug }: { personaSlug?: string } = {}) {
   const { toast } = useToast();
+
+  // Rendered inside the embeddable widget iframe (?embed=1): no app chrome.
+  const isEmbedded =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "1";
 
   const sessionKey = personaSlug ? `lead_session_token_${personaSlug}` : "lead_session_token";
   const [sessionToken, setSessionToken] = useState<string | null>(localStorage.getItem(sessionKey));
@@ -280,6 +284,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
         style={{ backgroundColor: theme.headerBg, borderBottom: theme.headerBorder }}
         className="flex items-center gap-3 px-3.5 py-2.5 z-10 shrink-0 shadow-sm"
       >
+        {!isEmbedded && (
         <Link href="/admin">
           <button
             className="p-1.5 -ml-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
@@ -289,6 +294,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
             <ChevronLeft className="w-5 h-5" />
           </button>
         </Link>
+        )}
 
         {/* Avatar with status indicator */}
         <div className="relative shrink-0">

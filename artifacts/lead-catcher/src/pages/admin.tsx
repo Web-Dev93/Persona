@@ -1682,7 +1682,7 @@ function StylesheetStudioTab() {
       {/* Stylesheet Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredStyles.map(st => {
-          const userBg = typeof st.userBubble === "string" ? st.userBubble : st.userBubble.gradient;
+          const userBg = st.userBubble;
 
           return (
             <div
@@ -1893,7 +1893,7 @@ function PresentationDeckTab() {
     }, 900);
   };
 
-  const userBg = typeof theme.userBubble === "string" ? theme.userBubble : theme.userBubble.gradient;
+  const userBg = theme.userBubble;
 
   return (
     <div className="space-y-8">
@@ -2203,8 +2203,35 @@ function LeadsTab() {
 
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const { data: singleLead, isLoading: loadingSingle } = useGetAdminLead(selectedLeadId || 0, {
-    query: { enabled: !!selectedLeadId },
+    query: { queryKey: ["/api/admin/leads", selectedLeadId], enabled: !!selectedLeadId },
   });
+
+  const [resendingId, setResendingId] = useState<number | null>(null);
+
+  const handleResend = async (id: number) => {
+    setResendingId(id);
+    try {
+      const res = await fetch(`/api/admin/leads/${id}/resend`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast({
+          title: "Lead wysłany ponownie",
+          description: `E-mail: ${data.emailSent ? "tak" : "nie"} · Webhook: ${data.webhookSent ? "tak" : "nie"}`,
+        });
+        refetch();
+      } else {
+        toast({
+          title: "Wysyłka nie powiodła się",
+          description: (data.errors ?? []).join(" · ") || data.error || "Brak skonfigurowanych kanałów.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({ title: "Błąd połączenia z serwerem", variant: "destructive" });
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   const handleDelete = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -2317,6 +2344,16 @@ function LeadsTab() {
                       🏢 {l.contactInfo.company}
                     </span>
                   )}
+                  {l.emailSent && (
+                    <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full border">
+                      ✉️ wysłano
+                    </span>
+                  )}
+                  {l.webhookSent && (
+                    <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full border">
+                      🔗 webhook
+                    </span>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -2337,9 +2374,20 @@ function LeadsTab() {
                   {singleLead?.createdAt && format(new Date(singleLead.createdAt), "dd MMMM yyyy, HH:mm")}
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setSelectedLeadId(null)}>
-                Zamknij
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={resendingId === selectedLeadId}
+                  onClick={() => handleResend(selectedLeadId)}
+                >
+                  {resendingId === selectedLeadId && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+                  Wyślij ponownie
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setSelectedLeadId(null)}>
+                  Zamknij
+                </Button>
+              </div>
             </div>
 
             <div className="p-6 overflow-y-auto space-y-4">
@@ -2356,6 +2404,34 @@ function LeadsTab() {
                         Analiza AI Leada:
                       </p>
                       <p className="text-xs leading-relaxed text-foreground">{singleLead.summary}</p>
+                    </div>
+                  )}
+
+                  {singleLead?.requirements && (
+                    <div className="bg-muted/50 border p-4 rounded-xl">
+                      <p className="text-xs font-bold uppercase tracking-wider mb-1 text-muted-foreground">
+                        Wymagania klienta:
+                      </p>
+                      <p className="text-xs leading-relaxed text-foreground">{singleLead.requirements}</p>
+                    </div>
+                  )}
+
+                  {singleLead?.attachments && singleLead.attachments.length > 0 && (
+                    <div className="bg-muted/50 border p-4 rounded-xl space-y-1.5">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Załączniki:
+                      </p>
+                      {singleLead.attachments.map(a => (
+                        <a
+                          key={a.id}
+                          href={a.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block text-xs text-primary hover:underline truncate"
+                        >
+                          📎 {a.fileName} ({Math.round(a.sizeBytes / 1024)} kB)
+                        </a>
+                      ))}
                     </div>
                   )}
 
@@ -2400,7 +2476,7 @@ function AnalyticsIntelligenceTab() {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [selectedConvId, setSelectedConvId] = useState<number | null>(null);
   const { data: singleLead, isLoading: loadingSingle } = useGetAdminLead(selectedConvId || 0, {
-    query: { enabled: !!selectedConvId },
+    query: { queryKey: ["/api/admin/leads", selectedConvId], enabled: !!selectedConvId },
   });
   const { toast } = useToast();
 
@@ -2931,12 +3007,15 @@ function SettingsTab() {
   const updateSettings = useUpdateAdminSettings();
   const { toast } = useToast();
 
+  const [companyName, setCompanyName] = useState("");
   const [notificationEmail, setNotificationEmail] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   useEffect(() => {
     if (settings) {
+      setCompanyName(settings.companyName || "");
       setNotificationEmail(settings.notificationEmail || "");
       setWebhookUrl(settings.webhookUrl || "");
     }
@@ -2947,6 +3026,7 @@ function SettingsTab() {
     try {
       await updateSettings.mutateAsync({
         data: {
+          companyName,
           notificationEmail,
           webhookUrl,
         },
@@ -2957,6 +3037,31 @@ function SettingsTab() {
       toast({ title: "Błąd zapisu", variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleTestWebhook = async () => {
+    if (!webhookUrl.trim()) {
+      toast({ title: "Podaj adres webhooka", variant: "destructive" });
+      return;
+    }
+    setIsTesting(true);
+    try {
+      const res = await fetch("/api/admin/webhook-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhookUrl }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: "Webhook odpowiedział poprawnie", description: data.message });
+      } else {
+        toast({ title: "Webhook zwrócił błąd", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Nie udało się połączyć z webhookiem", variant: "destructive" });
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -2978,6 +3083,16 @@ function SettingsTab() {
 
       <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-4">
         <div>
+          <label className="text-xs font-medium text-slate-300 block mb-1.5">Nazwa firmy (widoczna w powiadomieniach)</label>
+          <Input
+            value={companyName}
+            onChange={e => setCompanyName(e.target.value)}
+            placeholder="np. Twoja Agencja sp. z o.o."
+            className="bg-slate-800 border-slate-700 text-xs"
+          />
+        </div>
+
+        <div>
           <label className="text-xs font-medium text-slate-300 block mb-1.5">Adres e-mail na powiadomienia o leadach</label>
           <Input
             value={notificationEmail}
@@ -2997,7 +3112,22 @@ function SettingsTab() {
           />
         </div>
 
-        <div className="pt-2 flex justify-end">
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          Po zakończeniu rozmowy system generuje podsumowanie AI, wyciąga dane kontaktowe i wysyła je
+          na powyższy adres (przez Resend, gdy ustawiono <code className="font-mono">RESEND_API_KEY</code>)
+          oraz na webhook. Bez klucza Resend treść e-maila trafia do logów serwera.
+        </p>
+
+        <div className="pt-2 flex justify-end gap-2">
+          <Button
+            onClick={handleTestWebhook}
+            disabled={isTesting}
+            variant="outline"
+            className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs gap-2"
+          >
+            {isTesting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Wyślij testowe zgłoszenie
+          </Button>
           <Button onClick={handleSave} disabled={isSaving} className="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs gap-2">
             {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Zapisz powiadomienia

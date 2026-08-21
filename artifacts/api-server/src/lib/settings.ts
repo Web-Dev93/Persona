@@ -48,6 +48,9 @@ const DEFAULTS: Record<string, string> = {
   sales_enabled: "false",
   timer_mode: "disabled",
   timer_hours: "24",
+  notification_email: process.env.LEAD_EMAIL ?? "",
+  webhook_url: "",
+  company_name: process.env.COMPANY_NAME ?? "Persona",
 };
 
 export async function getSetting(key: string): Promise<string> {

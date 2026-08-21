@@ -1,12 +1,17 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 
-const defaultOpenRouterKey = "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";
-
 export const openRouterApiKey =
   process.env.OPENROUTER_API_KEY ||
   process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY ||
-  defaultOpenRouterKey;
+  "";
+
+if (!openRouterApiKey) {
+  console.warn(
+    "[AI] OPENROUTER_API_KEY is not set — chat and summarisation calls will fail. " +
+      "Add it to your environment (see .env.example).",
+  );
+}
 
 export const openRouterModel =
   process.env.OPENROUTER_MODEL ||
@@ -15,7 +20,7 @@ export const openRouterModel =
 
 export const openrouter = new OpenAI({
   baseURL: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
-  apiKey: openRouterApiKey,
+  apiKey: openRouterApiKey || "missing-openrouter-api-key",
   defaultHeaders: {
     "HTTP-Referer": "https://leadcatcher.local",
     "X-Title": "Persona Lead Catcher",

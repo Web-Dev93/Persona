@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import widgetRouter from "./routes/widget";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -40,6 +41,12 @@ app.use("/api/static/uploads", express.static(uploadDir));
 
 // API router
 app.use("/api", router);
+
+// The embed snippet loads the widget from the site root, so expose it there too.
+app.get("/widget.js", (req, res, next) => {
+  req.url = "/widget.js";
+  widgetRouter(req, res, next);
+});
 
 // Find static dist directory
 const candidates = [

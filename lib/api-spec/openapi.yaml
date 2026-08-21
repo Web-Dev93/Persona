@@ -598,8 +598,516 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /leads/{id}/contact:
+    post:
+      operationId: saveLeadContact
+      tags: [leads]
+      summary: Save contact details supplied by the visitor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactInfoInput"
+      responses:
+        "200":
+          description: Contact saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactSaveResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /leads/{id}/attachments:
+    get:
+      operationId: listLeadAttachments
+      tags: [leads]
+      summary: List files attached to a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attachment"
+
+  /admin/leads/{id}/resend:
+    post:
+      operationId: resendLead
+      tags: [admin]
+      summary: Re-send a captured lead to e-mail and webhook targets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Delivery result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadDeliveryResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/webhook-test:
+    post:
+      operationId: testAdminWebhook
+      tags: [admin]
+      summary: Send a sample payload to the configured webhook
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookTestInput"
+      responses:
+        "200":
+          description: Webhook accepted the payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleResult"
+        "400":
+          description: No webhook configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Webhook rejected the payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/analytics/overview:
+    get:
+      operationId: getAnalyticsOverview
+      tags: [admin]
+      summary: Conversation analytics overview
+      responses:
+        "200":
+          description: Analytics overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsOverview"
+
+  /admin/analytics/ai-report:
+    post:
+      operationId: generateAnalyticsReport
+      tags: [admin]
+      summary: Generate an AI report over collected conversations
+      responses:
+        "200":
+          description: Generated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsReport"
+        "500":
+          description: Generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /public/settings:
+    get:
+      operationId: getPublicSettings
+      tags: [public]
+      summary: Settings exposed to visitors and the demo simulator
+      responses:
+        "200":
+          description: Public settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicSettings"
+
+  /widget/config/{slug}:
+    get:
+      operationId: getWidgetConfig
+      tags: [public]
+      summary: Runtime configuration for the embeddable widget
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Widget configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WidgetConfig"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /leads/upload:
+    post:
+      operationId: uploadLeadAttachment
+      tags: [leads]
+      summary: Attach a file to a conversation
+      requestBody:
+        required: true
+        content:
+          multipart/form-data: {}
+      responses:
+        "201":
+          description: File stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttachmentUploadResult"
+        "400":
+          description: Missing or rejected file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/photo-upload:
+    post:
+      operationId: uploadConsultantPhoto
+      tags: [admin]
+      summary: Upload the global consultant photo
+      requestBody:
+        required: true
+        content:
+          multipart/form-data: {}
+      responses:
+        "200":
+          description: Photo stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhotoUploadResult"
+        "400":
+          description: Missing file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/persona-photo-upload:
+    post:
+      operationId: uploadPersonaPhoto
+      tags: [admin]
+      summary: Upload a photo for a single persona
+      requestBody:
+        required: true
+        content:
+          multipart/form-data: {}
+      responses:
+        "200":
+          description: Photo stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhotoUploadResult"
+        "400":
+          description: Missing file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
+    AttachmentUploadResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        id:
+          type: integer
+        fileName:
+          type: string
+        fileUrl:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+      required: [success, message, id, fileName, fileUrl, mimeType, sizeBytes]
+
+    PhotoUploadResult:
+      type: object
+      properties:
+        photoUrl:
+          type: string
+      required: [photoUrl]
+
+    ContactInfo:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        company:
+          type: ["string", "null"]
+
+    ContactInfoInput:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        company:
+          type: string
+
+    ContactSaveResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        contactInfo:
+          $ref: "#/components/schemas/ContactInfo"
+      required: [success, contactInfo]
+
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: ["integer", "null"]
+        fileName:
+          type: string
+        fileUrl:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, fileName, fileUrl, mimeType, sizeBytes, createdAt]
+
+    LeadWithConversation:
+      type: object
+      properties:
+        lead:
+          $ref: "#/components/schemas/LeadDetail"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnthropicMessage"
+      required: [lead, messages]
+
+    LeadDeliveryResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        emailSent:
+          type: boolean
+        webhookSent:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+      required: [success, emailSent, webhookSent, errors]
+
+    SimpleResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required: [success, message]
+
+    WebhookTestInput:
+      type: object
+      properties:
+        webhookUrl:
+          type: string
+
+    PublicSettings:
+      type: object
+      properties:
+        salesEnabled:
+          type: boolean
+        timerMode:
+          type: string
+        timerHours:
+          type: integer
+        consultantName:
+          type: string
+        companyName:
+          type: string
+      required: [salesEnabled, timerMode, timerHours, consultantName, companyName]
+
+    WidgetConfig:
+      type: object
+      properties:
+        slug:
+          type: ["string", "null"]
+        name:
+          type: string
+        title:
+          type: string
+        photoUrl:
+          type: ["string", "null"]
+        style:
+          type: string
+        companyName:
+          type: string
+        welcomeText:
+          type: string
+      required: [name, title, style, companyName, welcomeText]
+
+    CapturedContact:
+      type: object
+      properties:
+        type:
+          type: string
+        value:
+          type: string
+        conversationId:
+          type: integer
+        date:
+          type: string
+          format: date-time
+      required: [type, value, conversationId, date]
+
+    KeywordCount:
+      type: object
+      properties:
+        keyword:
+          type: string
+        count:
+          type: integer
+      required: [keyword, count]
+
+    IntentCounts:
+      type: object
+      properties:
+        pricing:
+          type: integer
+        timeline:
+          type: integer
+        technical:
+          type: integer
+        appointment:
+          type: integer
+        general:
+          type: integer
+      required: [pricing, timeline, technical, appointment, general]
+
+    ConversationBreakdown:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messageCount:
+          type: integer
+        userMessageCount:
+          type: integer
+        hasLeadContact:
+          type: boolean
+        summary:
+          type: ["string", "null"]
+        lastMessage:
+          type: string
+      required: [id, title, createdAt, messageCount, userMessageCount, hasLeadContact, lastMessage]
+
+    AnalyticsOverview:
+      type: object
+      properties:
+        totalConversations:
+          type: integer
+        totalUserMessages:
+          type: integer
+        totalAssistantMessages:
+          type: integer
+        capturedContactsCount:
+          type: integer
+        capturedContacts:
+          type: array
+          items:
+            $ref: "#/components/schemas/CapturedContact"
+        intentCounts:
+          $ref: "#/components/schemas/IntentCounts"
+        topKeywords:
+          type: array
+          items:
+            $ref: "#/components/schemas/KeywordCount"
+        conversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationBreakdown"
+      required:
+        [
+          totalConversations,
+          totalUserMessages,
+          totalAssistantMessages,
+          capturedContactsCount,
+          capturedContacts,
+          intentCounts,
+          topKeywords,
+          conversations,
+        ]
+
+    AnalyticsReport:
+      type: object
+      properties:
+        report:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+      required: [report, generatedAt]
+
     HealthStatus:
       type: object
       properties:
@@ -703,6 +1211,14 @@ components:
           type: boolean
         message:
           type: string
+        emailSent:
+          type: boolean
+        webhookSent:
+          type: boolean
+        summary:
+          type: ["string", "null"]
+        contactInfo:
+          $ref: "#/components/schemas/ContactInfo"
       required: [success, message]
 
     LeadSummary:
@@ -718,6 +1234,14 @@ components:
           type: boolean
         summary:
           type: ["string", "null"]
+        requirements:
+          type: ["string", "null"]
+        contactInfo:
+          $ref: "#/components/schemas/ContactInfo"
+        emailSent:
+          type: boolean
+        webhookSent:
+          type: boolean
         messageCount:
           type: integer
         personaId:
@@ -729,7 +1253,7 @@ components:
         createdAt:
           type: string
           format: date-time
-      required: [id, title, sessionToken, completed, messageCount, createdAt]
+      required: [id, title, sessionToken, completed, contactInfo, messageCount, createdAt]
 
     LeadDetail:
       type: object
@@ -744,6 +1268,18 @@ components:
           type: boolean
         summary:
           type: ["string", "null"]
+        requirements:
+          type: ["string", "null"]
+        contactInfo:
+          $ref: "#/components/schemas/ContactInfo"
+        emailSent:
+          type: boolean
+        webhookSent:
+          type: boolean
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Attachment"
         messageCount:
           type: integer
         personaId:
@@ -759,13 +1295,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AnthropicMessage"
-      required: [id, title, sessionToken, completed, messageCount, createdAt, messages]
+      required: [id, title, sessionToken, completed, contactInfo, messageCount, createdAt, messages]
 
     LeadSummarizeResult:
       type: object
       properties:
         summary:
           type: string
+        requirements:
+          type: ["string", "null"]
+        contactInfo:
+          $ref: "#/components/schemas/ContactInfo"
       required: [summary]
 
     AppSettings:
@@ -779,7 +1319,30 @@ components:
           type: string
         consultantPhotoUrl:
           type: ["string", "null"]
-      required: [systemPrompt, consultantName, consultantTitle]
+        companyName:
+          type: string
+        notificationEmail:
+          type: string
+        webhookUrl:
+          type: string
+        salesEnabled:
+          type: boolean
+        timerMode:
+          type: string
+        timerHours:
+          type: integer
+      required:
+        [
+          systemPrompt,
+          consultantName,
+          consultantTitle,
+          companyName,
+          notificationEmail,
+          webhookUrl,
+          salesEnabled,
+          timerMode,
+          timerHours,
+        ]
 
     AppSettingsUpdate:
       type: object
@@ -792,6 +1355,18 @@ components:
           type: string
         consultantPhotoUrl:
           type: ["string", "null"]
+        companyName:
+          type: string
+        notificationEmail:
+          type: string
+        webhookUrl:
+          type: string
+        salesEnabled:
+          type: boolean
+        timerMode:
+          type: string
+        timerHours:
+          type: integer
 
     PersonaType:
       type: object
