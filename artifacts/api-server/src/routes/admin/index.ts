@@ -8,6 +8,7 @@ import { openrouter, openRouterModel } from "@workspace/integrations-anthropic-a
 import { getSetting, setSetting, getAllSettings } from "../../lib/settings";
 import { buildNotificationPayload, contactInfoOf, enrichConversation } from "../../lib/leads";
 import { deliverLead, testWebhook } from "../../lib/notifications";
+import { extractContactInfo } from "../../lib/lead-intelligence";
 import {
   GetAdminLeadParams,
   DeleteAdminLeadParams,
@@ -316,10 +317,8 @@ router.get("/admin/analytics/overview", async (_req, res): Promise<void> => {
   const userMessages = allMessages.filter(m => m.role === "user");
   const assistantMessages = allMessages.filter(m => m.role === "assistant");
 
-  // Extract phone numbers and emails using regex across user messages
-  const phoneRegex = /(?:\+?48)?[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}/g;
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-
+  // Contact detection reuses the shared extractor so analytics agrees with what
+  // the CRM stored, and so digit runs in URLs or timestamps are not read as phones.
   const capturedContacts: Array<{ type: "phone" | "email"; value: string; conversationId: number; date: string }> = [];
   const intentCounts: Record<string, number> = {
     pricing: 0,
@@ -334,16 +333,12 @@ router.get("/admin/analytics/overview", async (_req, res): Promise<void> => {
   userMessages.forEach(m => {
     const text = m.content.toLowerCase();
 
-    // Phones
-    const phones = text.match(phoneRegex);
-    if (phones) {
-      phones.forEach(p => capturedContacts.push({ type: "phone", value: p.trim(), conversationId: m.conversationId, date: m.createdAt.toISOString() }));
+    const detected = extractContactInfo([m.content]);
+    if (detected.phone) {
+      capturedContacts.push({ type: "phone", value: detected.phone, conversationId: m.conversationId, date: m.createdAt.toISOString() });
     }
-
-    // Emails
-    const emails = text.match(emailRegex);
-    if (emails) {
-      emails.forEach(e => capturedContacts.push({ type: "email", value: e.trim(), conversationId: m.conversationId, date: m.createdAt.toISOString() }));
+    if (detected.email) {
+      capturedContacts.push({ type: "email", value: detected.email, conversationId: m.conversationId, date: m.createdAt.toISOString() });
     }
 
     // Intent classifier
@@ -375,8 +370,9 @@ router.get("/admin/analytics/overview", async (_req, res): Promise<void> => {
   const convDetails = allConversations.map(c => {
     const convMsgs = allMessages.filter(m => m.conversationId === c.id);
     const userMsgs = convMsgs.filter(m => m.role === "user");
-    const hasPhone = userMsgs.some(m => phoneRegex.test(m.content));
-    const hasEmail = userMsgs.some(m => emailRegex.test(m.content));
+    const convContact = extractContactInfo(userMsgs.map(m => m.content));
+    const hasPhone = convContact.phone !== null;
+    const hasEmail = convContact.email !== null;
 
     return {
       id: c.id,

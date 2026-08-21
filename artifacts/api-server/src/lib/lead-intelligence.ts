@@ -14,7 +14,10 @@ export interface LeadIntelligence extends ContactInfo {
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 // Polish mobile / landline formats, optional +48 prefix and separators.
-const PHONE_RE = /(?:\+?48[\s-]?)?(?:\d{3}[\s-]?\d{3}[\s-]?\d{3}|\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2})/;
+// The \w boundaries stop a 9-digit window from being carved out of a longer run
+// of digits — timestamps in filenames and URLs are not phone numbers.
+const PHONE_RE =
+  /(?<!\w)(?:\+?48[\s-]?)?(?:\d{3}[\s-]?\d{3}[\s-]?\d{3}|\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2})(?!\w)/;
 
 // Diacritics are frequently dropped when people type quickly, so both spellings match.
 const NAME_PATTERNS: RegExp[] = [
