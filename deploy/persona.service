@@ -1,0 +1,27 @@
+[Unit]
+Description=Persona Lead Catcher (API + frontend)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=persona
+Group=persona
+WorkingDirectory=/opt/persona
+EnvironmentFile=/opt/persona/.env
+ExecStart=/usr/bin/node --enable-source-maps /opt/persona/artifacts/api-server/dist/index.mjs
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=persona
+
+# Utwardzenie
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/persona
+
+[Install]
+WantedBy=multi-user.target
