@@ -9,6 +9,8 @@ przekazują gotowego leada do właściciela (e-mail + webhook do CRM).
 - `npm run dev` — API server (port 3001) + frontend Vite (port 3000) przez `scripts/dev.mjs`
 - `npm run typecheck` — pełne sprawdzenie typów: biblioteki + serwer + frontend
 - `npm run build` — typecheck bibliotek, build frontendu i serwera
+- `npm test` — testy (jednostkowe + integracyjny potok leada na izolowanej bazie)
+- `npm run check` — typecheck + testy, jedna komenda przed commitem
 - `npm run codegen` — regeneracja klienta React Query i schematów Zod z `openapi.yaml`
 - `npm start` — uruchomienie zbudowanego serwera (serwuje też frontend ze `dist/public`)
 
@@ -22,6 +24,8 @@ przekazują gotowego leada do właściciela (e-mail + webhook do CRM).
 | `RESEND_API_KEY` | Wysyłka e-maili z leadami; bez niej treść trafia tylko do logów |
 | `LEAD_EMAIL_FROM` | Adres nadawcy (domyślnie `onboarding@resend.dev`) |
 | `LEAD_EMAIL` / `COMPANY_NAME` | Wartości startowe dla ustawień w panelu admina |
+| `PGLITE_DATA_DIR` | Katalog wbudowanej bazy (domyślnie `./.data`) |
+| `UPLOAD_DIR` | Katalog przesłanych plików (domyślnie `./uploads`) |
 
 ## Ścieżki aplikacji
 
@@ -88,10 +92,28 @@ przekazują gotowego leada do właściciela (e-mail + webhook do CRM).
 - **Upload**: whitelist typów MIME, limit 10 MB, plik zapisywany w `uploads/` i wiązany
   z rozmową w tabeli `attachments`.
 
+## Testy
+
+`test/` uruchamiane wbudowanym runnerem Node (`node:test`) przez `tsx` — bez dodatkowych zależności.
+
+- `lead-intelligence.test.ts` — wyciąganie kontaktu, w tym regresja: 9-cyfrowy wycinek
+  z timestampu w URL-u nie jest numerem telefonu.
+- `chat-styles.test.ts` — regresja zgłoszonego błędu (`generateEmbedScript` przyjmuje
+  samo id stylu), parsowalność wygenerowanego snippetu i mapowanie starych id stylów.
+- `lead-pipeline.test.ts` — startuje realny serwer na własnej bazie PGlite i lokalnym
+  odbiorcy webhooka, po czym przechodzi całą ścieżkę: rozmowa → wykrycie kontaktu →
+  załącznik → zakończenie → dostarczenie → wznowienie sesji → analityka.
+
+Test integracyjny izoluje stan przez `PGLITE_DATA_DIR` i `UPLOAD_DIR`, więc nie dotyka
+Twojej lokalnej bazy ani katalogu `uploads/`.
+
 ## Gotchas
 
 - Po zmianie `openapi.yaml` uruchom `npm run codegen` (patchuje też import `zod/v4`).
 - Ciała `multipart/form-data` są celowo nietypowane w specyfikacji — inaczej `File`/`Blob`
   trafiłyby do pakietu Zod, który kompiluje się bez DOM.
 - `.data/` i `uploads/` to stan runtime — nie są wersjonowane, baza odtwarza się i seeduje
-  przy starcie.
+  przy starcie. Ich lokalizację zmienisz przez `PGLITE_DATA_DIR` i `UPLOAD_DIR`.
+- Panel `/admin` i wszystkie `/api/admin/*` są **bez uwierzytelniania** — każdy, kto zna
+  adres, zobaczy dane kontaktowe leadów. Do zamknięcia przed wystawieniem na publiczną
+  domenę.

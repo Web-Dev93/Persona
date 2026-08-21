@@ -133,8 +133,10 @@ if (dbUrl) {
 }
 
 if (!db) {
-  // Use embedded PGlite for persistent zero-dependency local / preview storage
-  const dataDir = path.join(process.cwd(), ".data");
+  // Use embedded PGlite for persistent zero-dependency local / preview storage.
+  // PGLITE_DATA_DIR keeps the database out of the checkout when the runtime
+  // working directory is the repository (deployments, tests).
+  const dataDir = process.env.PGLITE_DATA_DIR || path.join(process.cwd(), ".data");
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }

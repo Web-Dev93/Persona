@@ -5,13 +5,13 @@ import fs from "fs";
 import multer, { MulterError } from "multer";
 import { db, conversations, messages, attachments } from "@workspace/db";
 import { logger } from "../../lib/logger";
+import { ensureUploadDir } from "../../lib/paths";
 import { buildNotificationPayload, contactInfoOf, enrichConversation } from "../../lib/leads";
 import { deliverLead } from "../../lib/notifications";
 
 const router: IRouter = Router();
 
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const UPLOAD_DIR = ensureUploadDir();
 
 const ALLOWED_MIME = new Set([
   "image/png",

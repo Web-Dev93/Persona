@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
+import { ensureUploadDir } from "../../lib/paths";
 import multer from "multer";
 import { db, conversations, messages, personas, personaTypes, attachments } from "@workspace/db";
 import { openrouter, openRouterModel } from "@workspace/integrations-anthropic-ai";
@@ -18,8 +19,7 @@ import {
 
 const router: IRouter = Router();
 
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const UPLOAD_DIR = ensureUploadDir();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),

@@ -20,7 +20,9 @@
     "typecheck:server": "npm --workspace=@workspace/api-server run typecheck",
     "typecheck:frontend": "npm --workspace=@workspace/lead-catcher run typecheck",
     "typecheck": "npm run typecheck:libs && npm run typecheck:server && npm run typecheck:frontend",
-    "codegen": "npm --workspace=@workspace/api-spec run codegen"
+    "codegen": "npm --workspace=@workspace/api-spec run codegen",
+    "test": "tsx --test --test-concurrency=1 test/*.test.ts",
+    "check": "npm run typecheck && npm run test"
   },
   "dependencies": {
     "@replit/connectors-sdk": "^0.4.1",
