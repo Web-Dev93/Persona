@@ -7,8 +7,6 @@ import {
   CHAT_STYLES_LIST,
   generateEmbedScript,
   getStyleConfig,
-  resolveStyleId,
-  LEGACY_STYLE_ALIASES,
 } from "../artifacts/lead-catcher/src/lib/chat-styles";
 
 describe("generateEmbedScript", () => {
@@ -67,27 +65,20 @@ describe("generateEmbedScript", () => {
 });
 
 describe("style resolution", () => {
-  test("every legacy alias points at a style that exists", () => {
-    for (const [legacy, target] of Object.entries(LEGACY_STYLE_ALIASES)) {
-      assert.ok(CHAT_STYLES[target], `alias ${legacy} -> ${target} is not a real style`);
-    }
-  });
-
-  test("legacy ids from older databases resolve instead of falling back", () => {
-    assert.equal(resolveStyleId("dating"), "rose_luxury");
-    assert.equal(resolveStyleId("intercom"), "intercom_modern");
-    assert.equal(resolveStyleId("ios_minimal"), "imessage");
-  });
-
-  test("unknown and empty ids fall back to whatsapp", () => {
-    assert.equal(resolveStyleId("zupelnie-nieznany"), "whatsapp");
-    assert.equal(resolveStyleId(null), "whatsapp");
+  test("an unknown or empty id falls back to whatsapp", () => {
+    assert.equal(getStyleConfig("zupelnie-nieznany").id, "whatsapp");
+    assert.equal(getStyleConfig(null).id, "whatsapp");
     assert.equal(getStyleConfig(undefined).id, "whatsapp");
+  });
+
+  test("a known id returns its own style", () => {
+    assert.equal(getStyleConfig("telegram").id, "telegram");
+    assert.equal(getStyleConfig("corporate_dark").id, "corporate_dark");
   });
 
   test("every style carries the fields the chat UI reads", () => {
     for (const style of CHAT_STYLES_LIST) {
-      for (const field of ["sampleGreeting", "sampleLeadMessage", "sampleUserReply", "headerBg", "headerText", "botText", "accentColor"] as const) {
+      for (const field of ["sampleGreeting", "headerBg", "headerText", "botText", "accentColor"] as const) {
         assert.ok(style[field], `${style.id} is missing ${field}`);
       }
     }

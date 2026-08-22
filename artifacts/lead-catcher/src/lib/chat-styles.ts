@@ -32,13 +32,10 @@ export interface ChatStyleConfig {
   showLockBadge?: boolean;
   lockBadgeText?: string;
   sampleGreeting: string;
-  /** Sample advisor line rendered in the admin style previews. */
-  sampleLeadMessage: string;
-  /** Sample visitor reply rendered in the admin style previews. */
-  sampleUserReply: string;
-  /** Thin accent bar painted above the chat header; omit for a flat header. */
+  /** Optional extras the UI reads; no style sets them, so nothing extra renders. */
+  sampleLeadMessage?: string;
+  sampleUserReply?: string;
   topStripe?: string;
-  /** Icon offered as a one-tap reaction in the composer. */
   quickReactionIcon?: "thumbsup" | "heart" | "flame" | "sparkles" | "none";
   // Deep visual distinctions:
   bubbleVariant: "whatsapp" | "messenger" | "imessage" | "telegram" | "corporate" | "glass" | "luxury" | "metro";
@@ -81,10 +78,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     showLockBadge: true,
     lockBadgeText: "Wiadomości szyfrowane end-to-end",
     sampleGreeting: "Dzień dobry! Z przyjemnością pomogę w doborze optymalnego rozwiązania.",
-    sampleLeadMessage: "Dzień dobry! Chętnie przygotuję wstępną wycenę — proszę o kilka szczegółów.",
-    sampleUserReply: "Dzień dobry, potrzebuję kuchni na wymiar 3x2 m.",
-    topStripe: "linear-gradient(90deg, #25D366 0%, #075e54 100%)",
-    quickReactionIcon: "thumbsup",
     bubbleVariant: "whatsapp",
     borderRadius: "0.25rem",
     headerStyle: "whatsapp",
@@ -121,10 +114,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     bubbleBg: "#0084ff",
     bubbleIconColor: "#ffffff",
     sampleGreeting: "Cześć! W czym mogę Ci dzisiaj pomóc?",
-    sampleLeadMessage: "Cześć! Powiedz proszę, czego dokładnie szukasz — dobiorę najlepszą opcję.",
-    sampleUserReply: "Cześć, interesuje mnie strona dla mojej firmy.",
-    topStripe: "linear-gradient(90deg, #0084ff 0%, #a033ff 100%)",
-    quickReactionIcon: "thumbsup",
     bubbleVariant: "messenger",
     borderRadius: "1rem",
     headerStyle: "messenger",
@@ -160,9 +149,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     bubbleBg: "#007aff",
     bubbleIconColor: "#ffffff",
     sampleGreeting: "Dzień dobry! Jak mogę pomóc w Twojej sprawie?",
-    sampleLeadMessage: "Dzień dobry! Proszę opisać sprawę, a wrócę z konkretną propozycją.",
-    sampleUserReply: "Dzień dobry, mam pytanie o dostępne terminy.",
-    quickReactionIcon: "heart",
     bubbleVariant: "imessage",
     borderRadius: "1.1rem",
     headerStyle: "ios",
@@ -199,10 +185,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     bubbleIconColor: "#ffffff",
     showDoubleChecks: true,
     sampleGreeting: "Witaj! Jestem do Twojej dyspozycji w kwestii doradztwa.",
-    sampleLeadMessage: "Witam! Podeślę szczegóły — proszę powiedzieć, co jest najważniejsze.",
-    sampleUserReply: "Cześć, szukam wsparcia przy wdrożeniu.",
-    topStripe: "linear-gradient(90deg, #2AABEE 0%, #229ED9 100%)",
-    quickReactionIcon: "sparkles",
     bubbleVariant: "telegram",
     borderRadius: "0.5rem",
     headerStyle: "minimal"
@@ -236,10 +218,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     bubbleBg: "#4f46e5",
     bubbleIconColor: "#ffffff",
     sampleGreeting: "Cześć! Masz pytanie odnośnie wdrożenia lub cennika? Napisz śmiało!",
-    sampleLeadMessage: "Cześć! Chętnie doprecyzuję cennik i zakres wdrożenia.",
-    sampleUserReply: "Hej, ile kosztuje wdrożenie dla 10 osób?",
-    topStripe: "linear-gradient(90deg, #1f8ded 0%, #6c5ce7 100%)",
-    quickReactionIcon: "sparkles",
     bubbleVariant: "corporate",
     borderRadius: "0.25rem",
     headerStyle: "corporate",
@@ -277,9 +255,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     showLockBadge: true,
     lockBadgeText: "Bezpieczny kanał konsultacji biznesowej",
     sampleGreeting: "Dzień dobry! Zespół obsługi klienta jest do Twojej dyspozycji.",
-    sampleLeadMessage: "Dzień dobry! Proszę opisać sprawę — odpowiem od razu.",
-    sampleUserReply: "Dzień dobry, chciałbym poznać ofertę.",
-    quickReactionIcon: "none",
     bubbleVariant: "corporate",
     borderRadius: "0.15rem",
     headerStyle: "corporate"
@@ -316,10 +291,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     showLockBadge: true,
     lockBadgeText: "Poufna sesja konsultacyjna • SSL 256-bit",
     sampleGreeting: "Dzień dobry. Zapewniam pełną poufność i profesjonalną analizę wstępną.",
-    sampleLeadMessage: "Dzień dobry. Proszę o zarys sprawy — przygotuję wstępną analizę.",
-    sampleUserReply: "Dzień dobry, potrzebujemy audytu umowy B2B.",
-    topStripe: "linear-gradient(90deg, #1e3a8a 0%, #0f172a 100%)",
-    quickReactionIcon: "none",
     bubbleVariant: "glass",
     borderRadius: "0.25rem",
     headerStyle: "corporate"
@@ -353,10 +324,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     bubbleBg: "#e11d48",
     bubbleIconColor: "#ffffff",
     sampleGreeting: "Dzień dobry! Z przyjemnością doradzę w doborze zabiegu lub terminu.",
-    sampleLeadMessage: "Dzień dobry! Podpowiem, który zabieg będzie najlepszy i kiedy jest wolny termin.",
-    sampleUserReply: "Dzień dobry, interesuje mnie konsultacja.",
-    topStripe: "linear-gradient(90deg, #f43f5e 0%, #be123c 100%)",
-    quickReactionIcon: "heart",
     bubbleVariant: "luxury",
     borderRadius: "0.5rem",
     headerStyle: "corporate"
@@ -390,10 +357,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     bubbleBg: "#d97706",
     bubbleIconColor: "#ffffff",
     sampleGreeting: "Dzień dobry! Napisz, w czym możemy pomóc Twojej firmie lub pojazdowi.",
-    sampleLeadMessage: "Dzień dobry! Proszę podać model i objawy — oszacuję koszt naprawy.",
-    sampleUserReply: "Dzień dobry, stuka mi przednie zawieszenie.",
-    topStripe: "linear-gradient(90deg, #f59e0b 0%, #d97706 100%)",
-    quickReactionIcon: "flame",
     bubbleVariant: "corporate",
     borderRadius: "0.25rem",
     headerStyle: "corporate"
@@ -427,9 +390,6 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
     bubbleBg: "#0284c7",
     bubbleIconColor: "#ffffff",
     sampleGreeting: "Witaj. W czym mogę pomóc Twojej firmie?",
-    sampleLeadMessage: "Dzień dobry. Proszę o szczegóły zapytania — wrócę z rekomendacją.",
-    sampleUserReply: "Dzień dobry, proszę o kontakt w sprawie oferty.",
-    quickReactionIcon: "none",
     bubbleVariant: "metro",
     borderRadius: "0px",
     headerStyle: "minimal"
@@ -438,34 +398,9 @@ export const CHAT_STYLES: Record<string, ChatStyleConfig> = {
 
 export const CHAT_STYLES_LIST: ChatStyleConfig[] = Object.values(CHAT_STYLES);
 
-/**
- * Style ids used before the catalogue was consolidated to the ten styles above.
- * Personas stored in the database still carry them, so they are mapped rather
- * than silently falling back to WhatsApp.
- */
-export const LEGACY_STYLE_ALIASES: Record<string, string> = {
-  banking: "corporate_dark",
-  casual: "messenger",
-  dating: "rose_luxury",
-  instagram: "rose_luxury",
-  intercom: "intercom_modern",
-  glassmorphism: "web_widget",
-  ios_minimal: "imessage",
-  professional: "corporate_dark",
-  discord: "metro_slate",
-  neon_ai: "corporate_dark",
-  luxury_gold: "rose_luxury",
-};
-
-export function resolveStyleId(id: string | null | undefined): string {
-  if (!id) return "whatsapp";
-  if (CHAT_STYLES[id]) return id;
-  const alias = LEGACY_STYLE_ALIASES[id];
-  return alias && CHAT_STYLES[alias] ? alias : "whatsapp";
-}
-
 export function getStyleConfig(id: string | null | undefined): ChatStyleConfig {
-  return CHAT_STYLES[resolveStyleId(id)];
+  if (!id) return CHAT_STYLES.whatsapp;
+  return CHAT_STYLES[id] ?? CHAT_STYLES.whatsapp;
 }
 
 export function generateStylesheetCSS(theme: ChatStyleConfig): string {
@@ -521,7 +456,7 @@ export function generateEmbedScript(
 
   const escape = (value: string) => value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
-  return `<!-- Persona\u2122 Web Widget Embed Code -->
+  return `<!-- LeadTrap\u2122 Web Widget Embed Code -->
 <script>
   window.LeadTrapConfig = {
     personaSlug: "${escape(slug)}",

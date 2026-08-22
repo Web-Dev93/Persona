@@ -23,9 +23,8 @@ function fmt(iso: string) {
   try { return format(new Date(iso), "HH:mm"); } catch { return ""; }
 }
 
-/** Bubble backgrounds are plain CSS values, so gradients work as-is. */
 function getBg(v: string): React.CSSProperties {
-  return { background: v };
+  return { backgroundColor: v };
 }
 
 // ─── Message Bubble Component ──────────────────────────────────────────────────
@@ -90,7 +89,7 @@ function Bubble({
                   borderRadius: isApple ? "18px 18px 4px 18px" : isWhatsApp ? "10px 10px 0px 10px" : "18px 18px 4px 18px",
                 }
               : {
-                  background: theme.botBubble,
+                  backgroundColor: theme.botBubble,
                   border: theme.botBorder,
                   color: theme.botText,
                   borderRadius: isApple ? "18px 18px 18px 4px" : isWhatsApp ? "10px 10px 10px 0px" : "18px 18px 18px 4px",
@@ -400,7 +399,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
 
       {/* ─── Header ───────────────────────────────────────────────────────────── */}
       <header
-        style={{ background: theme.headerBg, borderBottom: theme.headerBorder }}
+        style={{ backgroundColor: theme.headerBg, borderBottom: theme.headerBorder }}
         className="flex items-center gap-3 px-3.5 py-2.5 z-10 shrink-0 shadow-sm"
       >
         {!isEmbedded && (
@@ -577,16 +576,14 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
               </Avatar>
               <div
                 className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
-                style={{ background: theme.headerBg }}
+                style={{ backgroundColor: theme.headerBg }}
               >
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: theme.onlineColor }} />
               </div>
             </div>
 
             <div className="text-center max-w-xs">
-              {/* This sits on the message-area background, not the header, so it
-                  takes botText — headerText is white in most themes. */}
-              <p className="font-semibold text-base" style={{ color: theme.botText }}>
+              <p className="font-semibold text-base" style={{ color: theme.headerText }}>
                 {personaName}
               </p>
               <p
@@ -662,7 +659,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
               <div
                 className="px-4 py-2.5 text-[14.5px] leading-relaxed shadow-sm rounded-2xl"
                 style={{
-                  background: theme.botBubble,
+                  backgroundColor: theme.botBubble,
                   border: theme.botBorder,
                   color: theme.botText,
                 }}
@@ -688,7 +685,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
             </Avatar>
             <div
               className="px-4 py-3 flex items-center gap-1.5 shadow-sm rounded-2xl"
-              style={{ background: theme.botBubble, border: theme.botBorder }}
+              style={{ backgroundColor: theme.botBubble, border: theme.botBorder }}
             >
               {[0, 150, 300].map(delay => (
                 <span
@@ -740,7 +737,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
 
       {/* ─── Bottom Input Bar ─────────────────────────────────────────────────── */}
       <div
-        style={{ background: theme.headerBg, borderTop: theme.headerBorder }}
+        style={{ backgroundColor: theme.headerBg, borderTop: theme.headerBorder }}
         className="px-3 py-2.5 shrink-0"
       >
         <form onSubmit={e => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
@@ -752,25 +749,11 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
             onChange={handleFileChosen}
           />
 
-          {/* Attachment control lives outside the per-theme icon clusters so every
-              style offers it, not just the two that happened to draw a paperclip.
-              It sits on the header background, so it takes the header's foreground
-              token — accentColor is the same colour as headerBg in several themes. */}
-          <button
-            type="button"
-            onClick={handlePickFile}
-            disabled={isUploading}
-            title="Dołącz plik"
-            aria-label="Dołącz plik"
-            className="p-1.5 shrink-0 rounded-full transition-opacity hover:opacity-70 disabled:opacity-40"
-            style={{ color: theme.headerText, opacity: 0.75 }}
-          >
-            {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Paperclip className="w-5 h-5" />}
-          </button>
           {/* Left social icons depending on theme */}
           {isWhatsApp && (
             <div className="flex items-center gap-1 text-[#8696a0]">
               <button type="button" className="p-1.5 hover:text-black/70 transition-colors"><Smile className="w-5 h-5" /></button>
+              <button type="button" onClick={handlePickFile} disabled={isUploading} className="p-1.5 hover:text-black/70 transition-colors"><Paperclip className="w-5 h-5" /></button>
             </div>
           )}
 
@@ -789,6 +772,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
 
           {isTelegram && (
             <div className="flex items-center gap-1 text-[#5288c1]">
+              <button type="button" onClick={handlePickFile} disabled={isUploading} className="p-1.5 hover:text-[#4173a7] transition-colors"><Paperclip className="w-5 h-5" /></button>
             </div>
           )}
 
