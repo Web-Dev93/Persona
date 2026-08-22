@@ -164,8 +164,13 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
   });
   const persona = personaSlug ? slugPersona : activePersona;
 
-  const { data: sessionData, isLoading: loadingSession, refetch: refetchSession } = useGetSessionByToken(sessionToken || "", {
-    query: { enabled: !!sessionToken, queryKey: ["/api/leads/session", sessionToken] }
+  const {
+    data: sessionData,
+    isLoading: loadingSession,
+    isError: sessionGone,
+    refetch: refetchSession,
+  } = useGetSessionByToken(sessionToken || "", {
+    query: { enabled: !!sessionToken, queryKey: ["/api/leads/session", sessionToken], retry: false },
   });
 
   const createConversation = useCreateAnthropicConversation();
@@ -178,6 +183,15 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
   const [streaming, setStreaming] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // A token can outlive its conversation (database reset, a link opened against a
+  // different environment). Drop it and start clean rather than retrying forever.
+  useEffect(() => {
+    if (!sessionGone) return;
+    localStorage.removeItem(sessionKey);
+    setSessionToken(null);
+    setConversationId(null);
+  }, [sessionGone, sessionKey]);
 
   useEffect(() => {
     if (sessionData?.messages) {
@@ -371,7 +385,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
     );
   }
 
-  if (sessionToken && loadingSession && !sessionData) {
+  if (sessionToken && loadingSession && !sessionData && messages.length === 0) {
     return (
       <div className="h-[100dvh] flex items-center justify-center" style={{ backgroundColor: theme.bg }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: theme.accentColor }} />

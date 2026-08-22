@@ -8,6 +8,7 @@ import AdminPage from '@/pages/admin';
 import ClientDemoCrmPage from '@/pages/client-demo-crm';
 import ChatPage from '@/pages/chat';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
+import { useHashLocation } from 'wouter/use-hash-location';
 
 const queryClient = new QueryClient();
 
@@ -31,9 +32,17 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
+        {/* Hash routing lets a built bundle run from a static file or a nested
+            path, where there is no server to rewrite unknown routes to index.html. */}
+        {import.meta.env.VITE_HASH_ROUTER === '1' ? (
+          <WouterRouter hook={useHashLocation}>
+            <Router />
+          </WouterRouter>
+        ) : (
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+            <Router />
+          </WouterRouter>
+        )}
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
