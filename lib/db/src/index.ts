@@ -134,13 +134,15 @@ if (dbUrl) {
 
 if (!db) {
   // Use embedded PGlite for persistent zero-dependency local / preview storage.
-  // PGLITE_DATA_DIR keeps the database out of the checkout when the runtime
-  // working directory is the repository (deployments, tests).
-  const dataDir = process.env.PGLITE_DATA_DIR || path.join(process.cwd(), ".data");
+  // PGLITE_DATA_DIR names the database directory itself, so a deployment can put
+  // it outside the checkout; the default keeps the historical ./.data/pgdata path.
+  const dataDir = process.env.PGLITE_DATA_DIR
+    ? path.resolve(process.env.PGLITE_DATA_DIR)
+    : path.join(process.cwd(), ".data", "pgdata");
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
-  const pglite = new PGlite(path.join(dataDir, "pgdata"));
+  const pglite = new PGlite(dataDir);
 
   await pglite.exec(INIT_SQL).catch((err: unknown) => {
     console.warn("[DB] PGlite table init notice:", err instanceof Error ? err.message : err);

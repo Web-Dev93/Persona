@@ -24,7 +24,7 @@ przekazują gotowego leada do właściciela (e-mail + webhook do CRM).
 | `RESEND_API_KEY` | Wysyłka e-maili z leadami; bez niej treść trafia tylko do logów |
 | `LEAD_EMAIL_FROM` | Adres nadawcy (domyślnie `onboarding@resend.dev`) |
 | `LEAD_EMAIL` / `COMPANY_NAME` | Wartości startowe dla ustawień w panelu admina |
-| `PGLITE_DATA_DIR` | Katalog wbudowanej bazy (domyślnie `./.data`) |
+| `PGLITE_DATA_DIR` | Katalog wbudowanej bazy (domyślnie `./.data/pgdata`) |
 | `UPLOAD_DIR` | Katalog przesłanych plików (domyślnie `./uploads`) |
 
 ## Ścieżki aplikacji
@@ -91,6 +91,11 @@ przekazują gotowego leada do właściciela (e-mail + webhook do CRM).
   `banking`, …) są mapowane przez `LEGACY_STYLE_ALIASES`, więc istniejące bazy działają.
 - **Upload**: whitelist typów MIME, limit 10 MB, plik zapisywany w `uploads/` i wiązany
   z rozmową w tabeli `attachments`.
+
+## Wdrożenie na własny serwer
+
+Komplet dla VPS-a (systemd, nginx, PostgreSQL, certyfikat, skrypt aktualizacji)
+leży w `deploy/` — instrukcja krok po kroku w `deploy/README.md`.
 
 ## Testy
 
