@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db, conversations, messages, personas, personaTypes } from "@workspace/db";
 import { openrouter, openRouterModel } from "@workspace/integrations-anthropic-ai";
 import { getSetting } from "../../lib/settings";
+import { extractContactInfo } from "../../lib/lead-intelligence";
 import { logger } from "../../lib/logger";
 import {
   CreateAnthropicConversationBody,
@@ -87,6 +88,20 @@ router.post("/anthropic/conversations/:id/messages", async (req, res): Promise<v
   await db.insert(messages).values({ conversationId: convId, role: "user", content: userContent });
 
   const history = await db.select().from(messages).where(eq(messages.conversationId, convId)).orderBy(messages.createdAt);
+
+  // Passive contact capture: whatever the visitor already typed lands in the CRM
+  // right away, without waiting for the lead to be marked complete.
+  if (conv) {
+    const detected = extractContactInfo(history.filter(m => m.role === "user").map(m => m.content));
+    const patch: Partial<typeof conversations.$inferInsert> = {};
+    if (detected.name && !conv.contactName) patch.contactName = detected.name;
+    if (detected.email && !conv.contactEmail) patch.contactEmail = detected.email;
+    if (detected.phone && !conv.contactPhone) patch.contactPhone = detected.phone;
+    if (detected.company && !conv.contactCompany) patch.contactCompany = detected.company;
+    if (Object.keys(patch).length > 0) {
+      await db.update(conversations).set(patch).where(eq(conversations.id, convId));
+    }
+  }
 
   // Build system prompt: personaType.systemPrompt + persona.additionalPrompt
   let systemPrompt = await getSetting("system_prompt");

@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import type { Database } from "./database";
 import { personaTypes } from "./schema/persona-types";
 import { personas } from "./schema/personas";
 
@@ -380,7 +381,7 @@ Zacznij od radosnego powitania i zapytaj, jakie niezwykłe wydarzenie klient pla
   },
 ];
 
-export async function seedDatabase(db: any) {
+export async function seedDatabase(db: Database) {
   try {
     console.log("[DB Seed] Checking database seed status...");
     
@@ -449,7 +450,7 @@ export async function seedDatabase(db: any) {
     }
 
     console.log("[DB Seed] Database seeding completed successfully.");
-  } catch (err: any) {
-    console.error("[DB Seed] Error during seeding:", err.message);
+  } catch (err) {
+    console.error("[DB Seed] Error during seeding:", err instanceof Error ? err.message : err);
   }
 }

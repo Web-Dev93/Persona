@@ -4,7 +4,9 @@ import path from "path";
 import fs from "fs";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import widgetRouter from "./routes/widget";
 import { logger } from "./lib/logger";
+import { ensureUploadDir } from "./lib/paths";
 
 const app: Express = express();
 
@@ -31,15 +33,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files (consultant photos, etc.)
-const uploadDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-app.use("/api/static/uploads", express.static(uploadDir));
+// Serve uploaded files (consultant photos, attachments)
+app.use("/api/static/uploads", express.static(ensureUploadDir()));
 
 // API router
 app.use("/api", router);
+
+// The embed snippet loads the widget from the site root, so expose it there too.
+app.get("/widget.js", (req, res, next) => {
+  req.url = "/widget.js";
+  widgetRouter(req, res, next);
+});
 
 // Find static dist directory
 const candidates = [

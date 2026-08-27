@@ -32,6 +32,11 @@ export interface ChatStyleConfig {
   showLockBadge?: boolean;
   lockBadgeText?: string;
   sampleGreeting: string;
+  /** Optional extras the UI reads; no style sets them, so nothing extra renders. */
+  sampleLeadMessage?: string;
+  sampleUserReply?: string;
+  topStripe?: string;
+  quickReactionIcon?: "thumbsup" | "heart" | "flame" | "sparkles" | "none";
   // Deep visual distinctions:
   bubbleVariant: "whatsapp" | "messenger" | "imessage" | "telegram" | "corporate" | "glass" | "luxury" | "metro";
   borderRadius: string;
@@ -421,24 +426,44 @@ export function generateStylesheetCSS(theme: ChatStyleConfig): string {
 `;
 }
 
+export interface EmbedOptions {
+  /** Slug of the persona that should answer; falls back to the active persona. */
+  personaSlug?: string | null;
+  theme?: string;
+  accentColor?: string;
+  welcomeText?: string;
+  position?: "right" | "left";
+}
+
+/**
+ * Builds the snippet a client pastes into their site. Accepts either a full
+ * options object or just a style id, so older call sites keep working.
+ */
 export function generateEmbedScript(
-  demoHash: string,
-  options: {
-    theme: string;
-    accentColor: string;
-    welcomeText: string;
-    position: "right" | "left";
-  }
+  personaSlug: string,
+  options: EmbedOptions | string = {},
 ): string {
-  const origin = window?.location?.origin || "https://twoja-domena.pl";
-  return `<!-- LeadTrap™ Web Widget Embed Code -->
+  const opts: EmbedOptions = typeof options === "string" ? { theme: options } : options;
+  const theme = getStyleConfig(opts.theme);
+  const slug = (opts.personaSlug ?? personaSlug ?? "").trim();
+  const accentColor = opts.accentColor ?? theme.accentColor;
+  const welcomeText = opts.welcomeText ?? theme.sampleGreeting;
+  const position = opts.position ?? "right";
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "https://twoja-domena.pl";
+
+  const escape = (value: string) => value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+  return `<!-- LeadTrap\u2122 Web Widget Embed Code -->
 <script>
   window.LeadTrapConfig = {
-    demoId: "${demoHash}",
-    theme: "${options.theme}",
-    accentColor: "${options.accentColor}",
-    welcomeText: "${options.welcomeText.replace(/"/g, '\\"')}",
-    position: "${options.position}"
+    personaSlug: "${escape(slug)}",
+    theme: "${escape(theme.id)}",
+    accentColor: "${escape(accentColor)}",
+    welcomeText: "${escape(welcomeText)}",
+    position: "${position}"
   };
 </script>
 <script src="${origin}/widget.js" async></script>`;

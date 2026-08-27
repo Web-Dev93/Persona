@@ -23,9 +23,8 @@ function fmt(iso: string) {
   try { return format(new Date(iso), "HH:mm"); } catch { return ""; }
 }
 
-function getBg(v: string | { gradient: string }): React.CSSProperties {
-  if (typeof v === "string") return { backgroundColor: v };
-  return { background: v.gradient };
+function getBg(v: string): React.CSSProperties {
+  return { backgroundColor: v };
 }
 
 // ─── Message Bubble Component ──────────────────────────────────────────────────
@@ -97,7 +96,23 @@ function Bubble({
                 }),
           }}
         >
-          <p className="whitespace-pre-wrap">{msg.content}</p>
+          {(() => {
+            // Attachment notices are stored as plain text so they survive in the
+            // transcript and the e-mail; in the bubble they render as a link.
+            const att = msg.content.match(/^\[Załącznik\] (.+?) — (\S+)$/);
+            if (!att) return <p className="whitespace-pre-wrap">{msg.content}</p>;
+            return (
+              <a
+                href={att[2]}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 underline underline-offset-2"
+              >
+                <Paperclip className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{att[1]}</span>
+              </a>
+            );
+          })()}
         </div>
 
         {/* Timestamp and delivery receipts */}
@@ -129,19 +144,32 @@ function Bubble({
 export default function ChatPage({ personaSlug }: { personaSlug?: string } = {}) {
   const { toast } = useToast();
 
+  // Rendered inside the embeddable widget iframe (?embed=1): no app chrome.
+  const isEmbedded =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "1";
+
   const sessionKey = personaSlug ? `lead_session_token_${personaSlug}` : "lead_session_token";
   const [sessionToken, setSessionToken] = useState<string | null>(localStorage.getItem(sessionKey));
 
   const { data: activePersona } = useGetActivePersona({
     query: { queryKey: ["/api/admin/personas/active"], retry: false, enabled: !personaSlug }
   });
-  const { data: slugPersona } = useGetPersonaBySlug(personaSlug ?? "", {
+  const {
+    data: slugPersona,
+    isError: slugNotFound,
+    isLoading: loadingSlugPersona,
+  } = useGetPersonaBySlug(personaSlug ?? "", {
     query: { queryKey: ["/api/personas/by-slug", personaSlug], enabled: !!personaSlug, retry: false }
   });
   const persona = personaSlug ? slugPersona : activePersona;
 
-  const { data: sessionData, isLoading: loadingSession, refetch: refetchSession } = useGetSessionByToken(sessionToken || "", {
-    query: { enabled: !!sessionToken, queryKey: ["/api/leads/session", sessionToken] }
+  const {
+    data: sessionData,
+    isLoading: loadingSession,
+    isError: sessionGone,
+    refetch: refetchSession,
+  } = useGetSessionByToken(sessionToken || "", {
+    query: { enabled: !!sessionToken, queryKey: ["/api/leads/session", sessionToken], retry: false },
   });
 
   const createConversation = useCreateAnthropicConversation();
@@ -154,6 +182,15 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
   const [streaming, setStreaming] = useState("");
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // A token can outlive its conversation (database reset, a link opened against a
+  // different environment). Drop it and start clean rather than retrying forever.
+  useEffect(() => {
+    if (!sessionGone) return;
+    localStorage.removeItem(sessionKey);
+    setSessionToken(null);
+    setConversationId(null);
+  }, [sessionGone, sessionKey]);
 
   useEffect(() => {
     if (sessionData?.messages) {
@@ -242,6 +279,68 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
     }
   };
 
+  // Attachments: the composer's paperclip was decorative; it now posts to the
+  // attachments endpoint and drops a note into the transcript.
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handlePickFile = () => fileInputRef.current?.click();
+
+  const handleFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    let cid = conversationId;
+    if (!cid) {
+      // A file can arrive before the first message, so open the conversation first.
+      try {
+        const nc = await createConversation.mutateAsync({
+          data: {
+            title: file.name.slice(0, 50),
+            sessionToken: crypto.randomUUID(),
+            personaId: persona?.id ?? null,
+          },
+        });
+        cid = nc.id;
+        setConversationId(nc.id);
+        setSessionToken(nc.sessionToken);
+        localStorage.setItem(sessionKey, nc.sessionToken);
+      } catch {
+        toast({ title: "Nie udało się rozpocząć rozmowy", variant: "destructive" });
+        return;
+      }
+    }
+
+    setIsUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("conversationId", String(cid));
+      const res = await fetch("/api/leads/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Nie wysłano pliku", description: data.error, variant: "destructive" });
+        return;
+      }
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now(),
+          conversationId: cid!,
+          role: "user",
+          content: `[Załącznik] ${data.fileName} — ${data.fileUrl}`,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+      toast({ title: "Plik wysłany", description: data.fileName });
+    } catch {
+      toast({ title: "Błąd wysyłki pliku", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const isCompleted = sessionData?.completed;
   const personaName = persona?.name ?? "Ania";
   const personaTitle = persona?.title ?? "";
@@ -262,7 +361,30 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
   const isNeonAI = theme.id === "neon_ai";
   const isLuxury = theme.id === "luxury_gold";
 
-  if (sessionToken && loadingSession && !sessionData) {
+  if (personaSlug && slugNotFound) {
+    return (
+      <div className="h-[100dvh] flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ backgroundColor: theme.bg }}>
+        <HelpCircle className="w-10 h-10" style={{ color: theme.accentColor }} />
+        <p className="font-semibold text-base" style={{ color: theme.botText }}>
+          Nie znaleziono doradcy
+        </p>
+        <p className="text-xs max-w-xs leading-relaxed" style={{ color: theme.botText, opacity: 0.7 }}>
+          Link, w który wszedłeś, wskazuje na doradcę „{personaSlug}", którego nie ma w systemie.
+          Sprawdź adres lub skontaktuj się z osobą, która Ci go przesłała.
+        </p>
+      </div>
+    );
+  }
+
+  if (personaSlug && loadingSlugPersona) {
+    return (
+      <div className="h-[100dvh] flex items-center justify-center" style={{ backgroundColor: theme.bg }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: theme.accentColor }} />
+      </div>
+    );
+  }
+
+  if (sessionToken && loadingSession && !sessionData && messages.length === 0) {
     return (
       <div className="h-[100dvh] flex items-center justify-center" style={{ backgroundColor: theme.bg }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: theme.accentColor }} />
@@ -280,6 +402,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
         style={{ backgroundColor: theme.headerBg, borderBottom: theme.headerBorder }}
         className="flex items-center gap-3 px-3.5 py-2.5 z-10 shrink-0 shadow-sm"
       >
+        {!isEmbedded && (
         <Link href="/admin">
           <button
             className="p-1.5 -ml-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
@@ -289,6 +412,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
             <ChevronLeft className="w-5 h-5" />
           </button>
         </Link>
+        )}
 
         {/* Avatar with status indicator */}
         <div className="relative shrink-0">
@@ -617,11 +741,19 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
         className="px-3 py-2.5 shrink-0"
       >
         <form onSubmit={e => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,.doc,.docx"
+            onChange={handleFileChosen}
+          />
+
           {/* Left social icons depending on theme */}
           {isWhatsApp && (
             <div className="flex items-center gap-1 text-[#8696a0]">
               <button type="button" className="p-1.5 hover:text-black/70 transition-colors"><Smile className="w-5 h-5" /></button>
-              <button type="button" className="p-1.5 hover:text-black/70 transition-colors"><Paperclip className="w-5 h-5" /></button>
+              <button type="button" onClick={handlePickFile} disabled={isUploading} className="p-1.5 hover:text-black/70 transition-colors"><Paperclip className="w-5 h-5" /></button>
             </div>
           )}
 
@@ -640,7 +772,7 @@ export default function ChatPage({ personaSlug }: { personaSlug?: string } = {})
 
           {isTelegram && (
             <div className="flex items-center gap-1 text-[#5288c1]">
-              <button type="button" className="p-1.5 hover:text-[#4173a7] transition-colors"><Paperclip className="w-5 h-5" /></button>
+              <button type="button" onClick={handlePickFile} disabled={isUploading} className="p-1.5 hover:text-[#4173a7] transition-colors"><Paperclip className="w-5 h-5" /></button>
             </div>
           )}
 

@@ -2,10 +2,14 @@ import { Router, type IRouter } from "express";
 import { eq, sql } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
+import { ensureUploadDir } from "../../lib/paths";
 import multer from "multer";
-import { db, conversations, messages, personas, personaTypes } from "@workspace/db";
+import { db, conversations, messages, personas, personaTypes, attachments } from "@workspace/db";
 import { openrouter, openRouterModel } from "@workspace/integrations-anthropic-ai";
 import { getSetting, setSetting, getAllSettings } from "../../lib/settings";
+import { buildNotificationPayload, contactInfoOf, enrichConversation } from "../../lib/leads";
+import { deliverLead, testWebhook } from "../../lib/notifications";
+import { extractContactInfo } from "../../lib/lead-intelligence";
 import {
   GetAdminLeadParams,
   DeleteAdminLeadParams,
@@ -15,8 +19,7 @@ import {
 
 const router: IRouter = Router();
 
-const UPLOAD_DIR = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+const UPLOAD_DIR = ensureUploadDir();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
@@ -71,6 +74,13 @@ router.get("/admin/leads", async (req, res): Promise<void> => {
       sessionToken: conversations.sessionToken,
       completed: conversations.completed,
       summary: conversations.summary,
+      requirements: conversations.requirements,
+      contactName: conversations.contactName,
+      contactEmail: conversations.contactEmail,
+      contactPhone: conversations.contactPhone,
+      contactCompany: conversations.contactCompany,
+      emailSent: conversations.emailSent,
+      webhookSent: conversations.webhookSent,
       personaId: conversations.personaId,
       createdAt: conversations.createdAt,
       messageCount: sql<number>`cast(count(${messages.id}) as integer)`,
@@ -83,6 +93,13 @@ router.get("/admin/leads", async (req, res): Promise<void> => {
       conversations.sessionToken,
       conversations.completed,
       conversations.summary,
+      conversations.requirements,
+      conversations.contactName,
+      conversations.contactEmail,
+      conversations.contactPhone,
+      conversations.contactCompany,
+      conversations.emailSent,
+      conversations.webhookSent,
       conversations.personaId,
       conversations.createdAt
     )
@@ -108,6 +125,7 @@ router.get("/admin/leads", async (req, res): Promise<void> => {
   const enriched = rows
     .map(row => ({
       ...row,
+      contactInfo: contactInfoOf(row as any),
       personaName: row.personaId ? (personaCache.get(row.personaId)?.name ?? null) : null,
       personaTypeName: row.personaId ? (personaCache.get(row.personaId)?.typeName ?? null) : null,
     }))
@@ -143,7 +161,17 @@ router.get("/admin/leads/:id", async (req, res): Promise<void> => {
     }
   }
 
-  res.json({ ...conv, messageCount: msgs.length, messages: msgs, personaName, personaTypeName });
+  const attachmentRows = await db.select().from(attachments).where(eq(attachments.conversationId, id));
+
+  res.json({
+    ...conv,
+    contactInfo: contactInfoOf(conv),
+    messageCount: msgs.length,
+    messages: msgs,
+    attachments: attachmentRows,
+    personaName,
+    personaTypeName,
+  });
 });
 
 router.delete("/admin/leads/:id", async (req, res): Promise<void> => {
@@ -161,54 +189,63 @@ router.post("/admin/leads/:id/summarize", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
 
   const id = parseInt(req.params.id, 10);
+  const enriched = await enrichConversation(id, { regenerateSummary: true });
+  if (!enriched) { res.status(404).json({ error: "Lead not found" }); return; }
+
+  res.json({
+    summary: enriched.conv.summary ?? "",
+    requirements: enriched.conv.requirements ?? null,
+    contactInfo: contactInfoOf(enriched.conv),
+  });
+});
+
+// Re-send an already captured lead to the configured e-mail / webhook targets.
+router.post("/admin/leads/:id/resend", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
   const [conv] = await db.select().from(conversations).where(eq(conversations.id, id));
   if (!conv) { res.status(404).json({ error: "Lead not found" }); return; }
 
   const msgs = await db.select().from(messages).where(eq(messages.conversationId, id)).orderBy(messages.createdAt);
-  const transcript = msgs.map(m => `${m.role === "user" ? "Klient" : "Konsultant"}: ${m.content}`).join("\n\n");
+  const payload = await buildNotificationPayload(conv, msgs);
+  const delivery = await deliverLead(payload);
 
-  const summaryPrompt = `Na podstawie poniższej rozmowy z potencjalnym klientem, przygotuj zwięzłe, profesjonalne podsumowanie leada.
+  await db
+    .update(conversations)
+    .set({
+      emailSent: conv.emailSent || delivery.emailSent,
+      webhookSent: conv.webhookSent || delivery.webhookSent,
+    })
+    .where(eq(conversations.id, id));
 
-Podsumowanie powinno zawierać:
-1. **Profil** — czym się zajmuje, kim jest klient
-2. **Problem / Potrzeba** — co konkretnie chce zrealizować
-3. **Szczegóły** — kluczowe wymagania, preferencje, informacje
-4. **Dane kontaktowe** — jeśli klient je podał
-5. **Ocena gotowości** — Wysoka / Średnia / Niska
-
-Pisz po polsku, profesjonalnie i zwięźle.
-
-TRANSKRYPCJA:
-${transcript}`;
-
-  let summary = "";
-  try {
-    const response = await openrouter.chat.completions.create({
-      model: openRouterModel,
-      max_tokens: 2048,
-      messages: [{ role: "user", content: summaryPrompt }],
-    });
-    summary = response.choices[0]?.message?.content || "";
-  } catch (err) {
-    summary = "Nie udało się wygenerować automatycznego podsumowania.";
-  }
-  await db.update(conversations).set({ summary }).where(eq(conversations.id, id));
-  res.json({ summary });
+  res.json({
+    success: delivery.errors.length === 0,
+    emailSent: delivery.emailSent,
+    webhookSent: delivery.webhookSent,
+    errors: delivery.errors,
+  });
 });
 
-// ─── Settings ────────────────────────────────────────────────────────────────
-
-router.get("/admin/settings", async (_req, res): Promise<void> => {
-  const settings = await getAllSettings();
-  res.json({
+function settingsResponse(settings: Record<string, string>) {
+  return {
     systemPrompt: settings["system_prompt"] ?? "",
     consultantName: settings["consultant_name"] ?? "Konsultant",
     consultantTitle: settings["consultant_title"] ?? "Specjalista ds. Strategii Cyfrowej",
     consultantPhotoUrl: settings["consultant_photo_url"] || null,
+    companyName: settings["company_name"] || "Persona",
+    notificationEmail: settings["notification_email"] || "",
+    webhookUrl: settings["webhook_url"] || "",
     salesEnabled: settings["sales_enabled"] === "true",
     timerMode: settings["timer_mode"] || "disabled",
     timerHours: parseInt(settings["timer_hours"] || "24", 10) || 24,
-  });
+  };
+}
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+
+router.get("/admin/settings", async (_req, res): Promise<void> => {
+  res.json(settingsResponse(await getAllSettings()));
 });
 
 // Lightweight public settings for clients / demo simulator
@@ -219,40 +256,56 @@ router.get("/public/settings", async (_req, res): Promise<void> => {
     timerMode: settings["timer_mode"] || "disabled",
     timerHours: parseInt(settings["timer_hours"] || "24", 10) || 24,
     consultantName: settings["consultant_name"] ?? "Konsultant",
+    companyName: settings["company_name"] || "Persona",
   });
 });
 
 router.put("/admin/settings", async (req, res): Promise<void> => {
+  const parsed = UpdateAdminSettingsBody.safeParse(req.body ?? {});
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
   const {
     systemPrompt,
     consultantName,
     consultantTitle,
     consultantPhotoUrl,
+    companyName,
+    notificationEmail,
+    webhookUrl,
     salesEnabled,
     timerMode,
     timerHours,
-  } = req.body || {};
+  } = parsed.data;
 
   const updates: Array<Promise<void>> = [];
   if (systemPrompt !== undefined) updates.push(setSetting("system_prompt", String(systemPrompt)));
   if (consultantName !== undefined) updates.push(setSetting("consultant_name", String(consultantName)));
   if (consultantTitle !== undefined) updates.push(setSetting("consultant_title", String(consultantTitle)));
   if (consultantPhotoUrl !== undefined) updates.push(setSetting("consultant_photo_url", consultantPhotoUrl ? String(consultantPhotoUrl) : ""));
+  if (companyName !== undefined) updates.push(setSetting("company_name", String(companyName)));
+  if (notificationEmail !== undefined) updates.push(setSetting("notification_email", notificationEmail ? String(notificationEmail) : ""));
+  if (webhookUrl !== undefined) updates.push(setSetting("webhook_url", webhookUrl ? String(webhookUrl) : ""));
   if (salesEnabled !== undefined) updates.push(setSetting("sales_enabled", salesEnabled ? "true" : "false"));
   if (timerMode !== undefined) updates.push(setSetting("timer_mode", String(timerMode)));
   if (timerHours !== undefined) updates.push(setSetting("timer_hours", String(timerHours)));
   await Promise.all(updates);
 
-  const settings = await getAllSettings();
-  res.json({
-    systemPrompt: settings["system_prompt"] ?? "",
-    consultantName: settings["consultant_name"] ?? "Konsultant",
-    consultantTitle: settings["consultant_title"] ?? "Specjalista ds. Strategii Cyfrowej",
-    consultantPhotoUrl: settings["consultant_photo_url"] || null,
-    salesEnabled: settings["sales_enabled"] === "true",
-    timerMode: settings["timer_mode"] || "disabled",
-    timerHours: parseInt(settings["timer_hours"] || "24", 10) || 24,
-  });
+  res.json(settingsResponse(await getAllSettings()));
+});
+
+// Fire a sample payload at the configured (or supplied) webhook so the operator
+// can verify the CRM integration without waiting for a real lead.
+router.post("/admin/webhook-test", async (req, res): Promise<void> => {
+  const supplied = typeof (req.body as any)?.webhookUrl === "string" ? (req.body as any).webhookUrl.trim() : "";
+  const url = supplied || (await getSetting("webhook_url"));
+  if (!url) { res.status(400).json({ error: "Brak skonfigurowanego adresu webhooka" }); return; }
+
+  try {
+    await testWebhook(url);
+    res.json({ success: true, message: "Testowe zgłoszenie zostało wysłane" });
+  } catch (err: any) {
+    res.status(502).json({ error: err?.message ?? "Webhook nie odpowiedział poprawnie" });
+  }
 });
 
 // ─── Analytics & Conversation Intelligence ────────────────────────────────────
@@ -264,10 +317,8 @@ router.get("/admin/analytics/overview", async (_req, res): Promise<void> => {
   const userMessages = allMessages.filter(m => m.role === "user");
   const assistantMessages = allMessages.filter(m => m.role === "assistant");
 
-  // Extract phone numbers and emails using regex across user messages
-  const phoneRegex = /(?:\+?48)?[\s-]?\d{3}[\s-]?\d{3}[\s-]?\d{3}/g;
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-
+  // Contact detection reuses the shared extractor so analytics agrees with what
+  // the CRM stored, and so digit runs in URLs or timestamps are not read as phones.
   const capturedContacts: Array<{ type: "phone" | "email"; value: string; conversationId: number; date: string }> = [];
   const intentCounts: Record<string, number> = {
     pricing: 0,
@@ -282,16 +333,12 @@ router.get("/admin/analytics/overview", async (_req, res): Promise<void> => {
   userMessages.forEach(m => {
     const text = m.content.toLowerCase();
 
-    // Phones
-    const phones = text.match(phoneRegex);
-    if (phones) {
-      phones.forEach(p => capturedContacts.push({ type: "phone", value: p.trim(), conversationId: m.conversationId, date: m.createdAt.toISOString() }));
+    const detected = extractContactInfo([m.content]);
+    if (detected.phone) {
+      capturedContacts.push({ type: "phone", value: detected.phone, conversationId: m.conversationId, date: m.createdAt.toISOString() });
     }
-
-    // Emails
-    const emails = text.match(emailRegex);
-    if (emails) {
-      emails.forEach(e => capturedContacts.push({ type: "email", value: e.trim(), conversationId: m.conversationId, date: m.createdAt.toISOString() }));
+    if (detected.email) {
+      capturedContacts.push({ type: "email", value: detected.email, conversationId: m.conversationId, date: m.createdAt.toISOString() });
     }
 
     // Intent classifier
@@ -323,8 +370,9 @@ router.get("/admin/analytics/overview", async (_req, res): Promise<void> => {
   const convDetails = allConversations.map(c => {
     const convMsgs = allMessages.filter(m => m.conversationId === c.id);
     const userMsgs = convMsgs.filter(m => m.role === "user");
-    const hasPhone = userMsgs.some(m => phoneRegex.test(m.content));
-    const hasEmail = userMsgs.some(m => emailRegex.test(m.content));
+    const convContact = extractContactInfo(userMsgs.map(m => m.content));
+    const hasPhone = convContact.phone !== null;
+    const hasEmail = convContact.email !== null;
 
     return {
       id: c.id,

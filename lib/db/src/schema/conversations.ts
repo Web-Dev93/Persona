@@ -7,8 +7,14 @@ export const conversations = pgTable("conversations", {
   title: text("title").notNull(),
   sessionToken: text("session_token").notNull().unique(),
   emailSent: boolean("email_sent").notNull().default(false),
+  webhookSent: boolean("webhook_sent").notNull().default(false),
   completed: boolean("completed").notNull().default(false),
   summary: text("summary"),
+  requirements: text("requirements"),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  contactCompany: text("contact_company"),
   personaId: integer("persona_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -17,8 +23,14 @@ export const insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,
   createdAt: true,
   emailSent: true,
+  webhookSent: true,
   completed: true,
   summary: true,
+  requirements: true,
+  contactName: true,
+  contactEmail: true,
+  contactPhone: true,
+  contactCompany: true,
 });
 
 export type Conversation = typeof conversations.$inferSelect;

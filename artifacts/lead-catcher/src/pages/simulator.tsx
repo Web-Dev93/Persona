@@ -3,6 +3,8 @@ import { Link } from "wouter";
 import {
   useCreateAnthropicConversation,
   useListAdminLeads,
+  useCreatePersona,
+  useGetPersonaBySlug,
   AnthropicMessage,
 } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -155,7 +157,7 @@ const INDUSTRY_CATEGORIES: IndustryCategory[] = [
       bio: "Szybko sprawdzam dostępność części, orientacyjne koszty robocizny i rezerwuję stanowisko warsztatowe lub auto zastępcze.",
       years: 5,
       specs: ["Wyceny napraw i części", "Auto detailing & ochrona lakieru", "Rezerwacja terminów serwisu", "Auta zastępcze"],
-      style: "glassmorphism",
+      style: "web_widget",
       photoUrl: ADVISOR_REAL_AVATARS.karolina,
       forbidden: ["Naprawimy bez faktury", "Części z chińskiego portalu", "Jestem botem"],
       allowed: ["Podanie orientacyjnego kosztu robocizny", "Zaproponowanie wolnego terminu", "Pobranie numeru VIN lub telefonu"],
@@ -168,7 +170,7 @@ const INDUSTRY_CATEGORIES: IndustryCategory[] = [
       bio: "Diagnostyka komputerowa, mechanika precyzyjna i zabezpieczenia PPF. Odpowiadam technicznie i ustalam terminy na podnośniku.",
       years: 9,
       specs: ["Mechanika silnikowa", "Pakiety detailingowe PPF", "Wstępny kosztorys po objawach", "Diagnostyka komputerowa"],
-      style: "glassmorphism",
+      style: "web_widget",
       photoUrl: ADVISOR_REAL_AVATARS.michal,
       forbidden: ["Zrobimy na słowo honoru", "Jestem automatem"],
       allowed: ["Wstępna diagnoza objawów", "Zaproponowanie terminu na podnośniku", "Pobranie telefonu"],
@@ -190,7 +192,7 @@ const INDUSTRY_CATEGORIES: IndustryCategory[] = [
       bio: "Dyskretnie odpowiadam na pytania dotyczące wskazań, rekonwalescencji i przebiegu zabiegów. Pomagam dobrać termin do lekarza specjalisty.",
       years: 7,
       specs: ["Konsultacje kosmetologiczne", "Medycyna estetyczna & laseroterapia", "Zalecenia pozabiegowe", "Rezerwacja terminów u lekarza"],
-      style: "ios_minimal",
+      style: "imessage",
       photoUrl: ADVISOR_REAL_AVATARS.zofia,
       forbidden: ["Zabieg jest w 100% bezbolesny", "Lekarz przyjmie bez zapisu", "Jestem botem"],
       allowed: ["Wyjaśnienie etapów zabiegu i rekonwalescencji", "Przedstawienie cen pakietów", "Pobranie telefonu do potwierdzenia wizyty"],
@@ -203,7 +205,7 @@ const INDUSTRY_CATEGORIES: IndustryCategory[] = [
       bio: "Dbałość o standard medyczny i komfort pacjenta. Pomagam w doborze procedur laserowych i umawianiu wizyt u chirurgów.",
       years: 6,
       specs: ["Stomatologia i implantologia", "Zabiegi laserowe", "Pakiety regeneracyjne", "Koordynacja wizyt lekarskich"],
-      style: "ios_minimal",
+      style: "imessage",
       photoUrl: ADVISOR_REAL_AVATARS.krzysztof,
       forbidden: ["Gwarantuję brak powikłań", "Jestem robotem"],
       allowed: ["Podanie cennika procedur", "Wyjaśnienie znieczulenia", "Pobranie telefonu"],
@@ -260,7 +262,7 @@ const INDUSTRY_CATEGORIES: IndustryCategory[] = [
       bio: "Wspieram firmy w precyzyjnym definiowaniu zakresu MVP, doborze stacku technologicznego i przygotowaniu kosztorysu wdrożenia.",
       years: 7,
       specs: ["Aplikacje mobilne i webowe", "Wycena MVP i estymacja sprintów", "Wdrożenia modeli AI & LLM", "Umawianie discovery calls z Tech Leadem"],
-      style: "intercom",
+      style: "intercom_modern",
       photoUrl: ADVISOR_REAL_AVATARS.marta,
       forbidden: ["Napiszemy Facebooka w weekend za 500 zł", "Nie podpisujemy NDA", "Jestem botem"],
       allowed: ["Podanie orientacyjnego budżetu MVP", "Zaproponowanie 20-minutowego Discovery Call", "Pobranie kontaktu i briefu"],
@@ -273,7 +275,7 @@ const INDUSTRY_CATEGORIES: IndustryCategory[] = [
       bio: "Architektura chmurowa AWS/GCP, skalowalne mikroserwisy i dedykowane integracje API. Przygotowuję estymacje architektoniczne.",
       years: 9,
       specs: ["Architektura chmurowa", "Audyt kodu i bezpieczeństwa", "Estymacja roboczogodzin (Story Points)", "Integracje systemów ERP/CRM"],
-      style: "intercom",
+      style: "intercom_modern",
       photoUrl: ADVISOR_REAL_AVATARS.tomasz,
       forbidden: ["Gwarantuję 0 błędów w kodzie", "Jestem maszyną"],
       allowed: ["Wstępna analiza architektoniczna", "Propozycja warsztatów scopingowych", "Pobranie kontaktu"],
@@ -353,7 +355,13 @@ const INDUSTRY_CATEGORIES: IndustryCategory[] = [
   }
 ];
 
-export default function SimulatorPage({ initialSlug }: { initialSlug?: string }) {
+export default function SimulatorPage({
+  initialSlug,
+  isDemoRoute = false,
+}: {
+  initialSlug?: string;
+  isDemoRoute?: boolean;
+}) {
   const { toast } = useToast();
   const { data: leads = [] } = useListAdminLeads();
 
@@ -460,7 +468,31 @@ export default function SimulatorPage({ initialSlug }: { initialSlug?: string })
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   const createConversation = useCreateAnthropicConversation();
+  const createPersona = useCreatePersona();
   const sessionKey = `aura_session_${selectedIndustryId}_${selectedGender}`;
+
+  // Persona addressed by the URL (/chat/:slug, /demo/:hash) — its style and
+  // identity seed the studio so a shared link opens the right advisor.
+  const { data: linkedPersona } = useGetPersonaBySlug(initialSlug ?? "", {
+    query: {
+      queryKey: ["/api/personas/by-slug", initialSlug],
+      enabled: !!initialSlug,
+      retry: false,
+    },
+  });
+
+  // Slug the generated advisor was saved under; drives the embed snippet.
+  const [publishedSlug, setPublishedSlug] = useState<string | null>(initialSlug ?? null);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!linkedPersona) return;
+    setConsultantName(linkedPersona.name);
+    if (linkedPersona.title) setConsultantTitle(linkedPersona.title);
+    if (linkedPersona.photoUrl) setConsultantPhoto(linkedPersona.photoUrl);
+    if (linkedPersona.effectiveStyle) setSelectedStyleId(linkedPersona.effectiveStyle);
+    if (linkedPersona.slug) setPublishedSlug(linkedPersona.slug);
+  }, [linkedPersona]);
 
   // Wczytywanie sesji lub czyszczenie
   useEffect(() => {
@@ -619,6 +651,39 @@ Jeśli klient wyrazi silne niezadowolenie, skomplikowane roszczenie prawne lub z
     });
   };
 
+  // Zapisanie wygenerowanego doradcy jako trwałej persony — dopiero wtedy kod
+  // embed i link /chat/:slug wskazują na coś realnego.
+  const handlePublishPersona = async () => {
+    setIsPublishing(true);
+    try {
+      const created = await createPersona.mutateAsync({
+        data: {
+          name: consultantName,
+          title: consultantTitle,
+          photoUrl: consultantPhoto || null,
+          additionalPrompt: buildComprehensiveSystemPrompt(),
+          style: selectedStyleId,
+          personaTypeId: null,
+        },
+      });
+      setPublishedSlug(created.slug ?? null);
+      toast({
+        title: "Doradca zapisany",
+        description: created.slug
+          ? `Dostępny pod adresem /chat/${created.slug} oraz w kodzie embed.`
+          : "Persona została zapisana w panelu administracyjnym.",
+      });
+    } catch {
+      toast({
+        title: "Nie udało się zapisać doradcy",
+        description: "Sprawdź połączenie z serwerem API i spróbuj ponownie.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   // Wysłanie wiadomości w czacie
   const handleSendMessage = async (customText?: string) => {
     const text = (customText ?? inputValue).trim();
@@ -651,7 +716,7 @@ Jeśli klient wyrazi silne niezadowolenie, skomplikowane roszczenie prawne lub z
           data: {
             title: text.slice(0, 40),
             sessionToken: crypto.randomUUID(),
-            personaId: null
+            personaId: linkedPersona?.id ?? null
           }
         });
         cid = newConv.id;
@@ -719,6 +784,13 @@ Jeśli klient wyrazi silne niezadowolenie, skomplikowane roszczenie prawne lub z
     toast({ title: "Zresetowano konwersację", description: "Możesz zacząć nowy test od czystej karty." });
   };
 
+  const embedSnippet = generateEmbedScript(publishedSlug ?? "", {
+    personaSlug: publishedSlug,
+    theme: selectedStyleId,
+    welcomeText: `Cześć! Tu ${consultantName}. W czym mogę pomóc?`,
+    position: "right",
+  });
+
   const currentIndustry = INDUSTRY_CATEGORIES.find(c => c.id === selectedIndustryId) || INDUSTRY_CATEGORIES[0];
   const activePersona = selectedGender === "female" ? currentIndustry.femalePersona : currentIndustry.malePersona;
 
@@ -764,6 +836,11 @@ Jeśli klient wyrazi silne niezadowolenie, skomplikowane roszczenie prawne lub z
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold">
                   {activeFrameworkObj.name}
                 </span>
+                {isDemoRoute && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/25 font-bold uppercase tracking-wider">
+                    Demo klienta
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -1504,20 +1581,60 @@ Jeśli klient wyrazi silne niezadowolenie, skomplikowane roszczenie prawne lub z
                     <div>
                       <h3 className="text-base font-bold text-white flex items-center gap-2">
                         <Code2 className="w-5 h-5 text-cyan-400" />
-                        Gotowy Kod Osadzenia na Twojej Stronie
+                        Publikacja Doradcy & Kod Osadzenia
                       </h3>
                       <p className="text-xs text-slate-300 mt-1">
-                        Wklej poniższy skrypt przed zamknięciem znacznika &lt;/body&gt; na stronie:
+                        Najpierw zapisz doradcę, potem wklej skrypt przed zamknięciem znacznika &lt;/body&gt;.
                       </p>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed">
-                      {generateEmbedScript("demo-aura-core", selectedStyleId)}
+                    {/* Krok 1 — publikacja */}
+                    <div className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold text-white">Krok 1 — Zapisz doradcę</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {publishedSlug
+                              ? `Opublikowany jako „${consultantName}” — /chat/${publishedSlug}`
+                              : "Doradca istnieje tylko w tej przeglądarce, dopóki go nie zapiszesz."}
+                          </p>
+                        </div>
+                        {publishedSlug && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
+                      </div>
+
+                      <button
+                        onClick={handlePublishPersona}
+                        disabled={isPublishing}
+                        className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-white disabled:opacity-60 text-slate-950 font-bold text-xs cursor-pointer flex items-center justify-center gap-2 transition-all"
+                      >
+                        {isPublishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        <span>{publishedSlug ? "Zapisz jako nowego doradcę" : "Zapisz doradcę i wygeneruj link"}</span>
+                      </button>
+
+                      {publishedSlug && (
+                        <a
+                          href={`/chat/${publishedSlug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-cyan-400 hover:text-cyan-300"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Otwórz publiczny czat doradcy
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Krok 2 — kod embed */}
+                    <div>
+                      <p className="text-xs font-bold text-white mb-2">Krok 2 — Wklej kod na stronę</p>
+                      <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed whitespace-pre">
+                        {embedSnippet}
+                      </div>
                     </div>
 
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(generateEmbedScript("demo-aura-core", selectedStyleId));
+                        navigator.clipboard.writeText(embedSnippet);
                         toast({ title: "Skopiowano kod do schowka!" });
                       }}
                       className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs cursor-pointer flex items-center justify-center gap-2 transition-all shadow-md shadow-cyan-500/20"
@@ -1525,6 +1642,13 @@ Jeśli klient wyrazi silne niezadowolenie, skomplikowane roszczenie prawne lub z
                       <Copy className="w-4 h-4" />
                       <span>Kopiuj Kod HTML / JS</span>
                     </button>
+
+                    {!publishedSlug && (
+                      <p className="text-[11px] text-amber-300/90 flex items-start gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                        Bez zapisania doradcy widget użyje persony ustawionej jako aktywna w panelu administracyjnym.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1744,13 +1868,13 @@ Jeśli klient wyrazi silne niezadowolenie, skomplikowane roszczenie prawne lub z
               <p className="text-xs text-slate-400">Działa natychmiast na WordPress, Shopify, Webflow, React i dowolnym HTML.</p>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed">
-              {generateEmbedScript("demo-aura-core", selectedStyleId)}
+            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed whitespace-pre">
+              {embedSnippet}
             </div>
 
             <button
               onClick={() => {
-                navigator.clipboard.writeText(generateEmbedScript("demo-aura-core", selectedStyleId));
+                navigator.clipboard.writeText(embedSnippet);
                 toast({ title: "Skopiowano kod do schowka!" });
                 setShowIntegrateModal(false);
               }}
